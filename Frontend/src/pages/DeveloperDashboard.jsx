@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { useAuth } from "../context/AuthContext"
 import githubOAuth from "../services/githubOAuth"
+import * as organizationService from "../services/organizationService"
 
 const mockRepositories = [
   {
@@ -126,16 +127,49 @@ export default function DeveloperDashboard() {
 
   const loadRepositories = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/repositories`)
-      if (response.ok) {
-        const data = await response.json()
-        setRepositories(data.repositories || mockRepositories)
-      } else {
-        // Fallback to mock data if API fails
+      console.log('🔄 Loading registered repositories from IPFS...')
+      
+      // Get all registered repositories from localStorage (IPFS hashes would be stored here)
+      const registeredRepos = JSON.parse(localStorage.getItem('hackAura_registered_repos') || '[]')
+      
+      if (registeredRepos.length === 0) {
+        console.log('📦 No registered repositories found, using mock data')
         setRepositories(mockRepositories)
+        return
       }
+
+      // Load repositories with real bounty data
+      const reposWithBounties = registeredRepos.map(repo => {
+        // Get all bounties for this repository
+        const repoBounties = organizationService.getRepositoryBounties(repo.id.toString())
+        const bountyValues = Object.values(repoBounties)
+        
+        // Calculate repository bounty statistics
+        const totalBounty = bountyValues.reduce((sum, bounty) => sum + bounty.amount, 0)
+        const activeBounties = bountyValues.filter(bounty => bounty.status === 'active').length
+        
+        // Create issues with bounty amounts
+        const issuesWithBounties = (repo.issues || []).map(issue => ({
+          ...issue,
+          bounty_amount: organizationService.getBountyAmount(repo.id.toString(), issue.id.toString())
+        }))
+
+        return {
+          ...repo,
+          totalBounty: totalBounty,
+          activeBounties: activeBounties,
+          issues: issuesWithBounties,
+          // Add pool balance
+          poolBalance: parseFloat(organizationService.getLocalPoolBalance(repo.id.toString()) || '0')
+        }
+      })
+
+      console.log(`✅ Loaded ${reposWithBounties.length} repositories with real bounty data`)
+      setRepositories(reposWithBounties)
+      
     } catch (error) {
-      console.error('Failed to load repositories:', error)
+      console.error('❌ Failed to load repositories:', error)
+      console.log('📦 Falling back to mock data')
       setRepositories(mockRepositories)
     }
   }

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HackAura Integration Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        .success { color: green; }
+        .error { color: red; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>HackAura IPFS Integration Test</h1>
+    
+    <div class="section">
+        <h2>Test Repository Registration Storage</h2>
+        <button onclick="testRepositoryStorage()">Test Store Repository</button>
+        <button onclick="testLoadRepositories()">Test Load Repositories</button>
+        <div id="repoResults"></div>
+    </div>
+
+    <div class="section">
+        <h2>Test Bounty Storage</h2>
+        <button onclick="testBountyStorage()">Test Store Bounty</button>
+        <button onclick="testLoadBounties()">Test Load Bounties</button>
+        <div id="bountyResults"></div>
+    </div>
+
+    <div class="section">
+        <h2>Test Pool Balance</h2>
+        <button onclick="testPoolBalance()">Test Pool Operations</button>
+        <div id="poolResults"></div>
+    </div>
+
+    <script>
+        // Test repository storage functions
+        function testRepositoryStorage() {
+            const testRepo = {
+                id: 123456789,
+                name: "test-repo",
+                fullName: "testuser/test-repo",
+                description: "A test repository for HackAura",
+                htmlUrl: "https://github.com/testuser/test-repo",
+                cloneUrl: "https://github.com/testuser/test-repo.git",
+                language: "JavaScript",
+                stars: 42,
+                forks: 7,
+                openIssues: 3,
+                owner: {
+                    login: "testuser",
+                    avatarUrl: "https://github.com/testuser.png"
+                },
+                organizer: {
+                    address: "0x1234567890abcdef",
+                    registeredAt: new Date().toISOString()
+                },
+                hackAura: {
+                    poolBalance: '0',
+                    totalBounties: 0,
+                    activeBounties: 0,
+                    completedBounties: 0
+                }
+            };
+            
+            try {
+                const registeredRepos = JSON.parse(localStorage.getItem('hackAura_registered_repos') || '[]');
+                registeredRepos.push(testRepo);
+                localStorage.setItem('hackAura_registered_repos', JSON.stringify(registeredRepos));
+                
+                document.getElementById('repoResults').innerHTML = 
+                    '<div class="success">✅ Repository stored successfully</div>' +
+                    '<pre>' + JSON.stringify(testRepo, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('repoResults').innerHTML = 
+                    '<div class="error">❌ Error: ' + error.message + '</div>';
+            }
+        }
+
+        function testLoadRepositories() {
+            try {
+                const registeredRepos = JSON.parse(localStorage.getItem('hackAura_registered_repos') || '[]');
+                document.getElementById('repoResults').innerHTML = 
+                    '<div class="success">✅ Loaded ' + registeredRepos.length + ' repositories</div>' +
+                    '<pre>' + JSON.stringify(registeredRepos, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('repoResults').innerHTML = 
+                    '<div class="error">❌ Error: ' + error.message + '</div>';
+            }
+        }
+
+        function testBountyStorage() {
+            const testBounty = {
+                repoId: '123456789',
+                issueId: '987654321',
+                amount: 100,
+                fundingSource: 'pool',
+                transactionHash: '0xabcdef123456',
+                createdAt: new Date().toISOString(),
+                status: 'active'
+            };
+
+            try {
+                const bounties = JSON.parse(localStorage.getItem('hackAura_bounties') || '{}');
+                const bountyKey = `${testBounty.repoId}_${testBounty.issueId}`;
+                bounties[bountyKey] = testBounty;
+                localStorage.setItem('hackAura_bounties', JSON.stringify(bounties));
+                
+                document.getElementById('bountyResults').innerHTML = 
+                    '<div class="success">✅ Bounty stored successfully</div>' +
+                    '<pre>' + JSON.stringify(testBounty, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('bountyResults').innerHTML = 
+                    '<div class="error">❌ Error: ' + error.message + '</div>';
+            }
+        }
+
+        function testLoadBounties() {
+            try {
+                const bounties = JSON.parse(localStorage.getItem('hackAura_bounties') || '{}');
+                document.getElementById('bountyResults').innerHTML = 
+                    '<div class="success">✅ Loaded ' + Object.keys(bounties).length + ' bounties</div>' +
+                    '<pre>' + JSON.stringify(bounties, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('bountyResults').innerHTML = 
+                    '<div class="error">❌ Error: ' + error.message + '</div>';
+            }
+        }
+
+        function testPoolBalance() {
+            const repoId = '123456789';
+            
+            try {
+                // Test adding to pool
+                const pools = JSON.parse(localStorage.getItem('hackAura_repo_pools') || '{}');
+                const currentBalance = parseFloat(pools[repoId] || '0');
+                const newBalance = currentBalance + 500;
+                pools[repoId] = newBalance.toFixed(6);
+                localStorage.setItem('hackAura_repo_pools', JSON.stringify(pools));
+                
+                // Test subtracting from pool
+                const updatedBalance = newBalance - 100;
+                pools[repoId] = updatedBalance.toFixed(6);
+                localStorage.setItem('hackAura_repo_pools', JSON.stringify(pools));
+                
+                document.getElementById('poolResults').innerHTML = 
+                    '<div class="success">✅ Pool balance updated successfully</div>' +
+                    '<div>Repository ID: ' + repoId + '</div>' +
+                    '<div>Final Balance: ' + pools[repoId] + ' HLUSD</div>' +
+                    '<pre>' + JSON.stringify(pools, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('poolResults').innerHTML = 
+                    '<div class="error">❌ Error: ' + error.message + '</div>';
+            }
+        }
+
+        // Clear all test data
+        function clearTestData() {
+            localStorage.removeItem('hackAura_registered_repos');
+            localStorage.removeItem('hackAura_bounties');
+            localStorage.removeItem('hackAura_repo_pools');
+            alert('✅ All test data cleared');
+        }
+    </script>
+
+    <div class="section">
+        <h2>Cleanup</h2>
+        <button onclick="clearTestData()" style="background-color: #ff6b6b; color: white;">Clear All Test Data</button>
+    </div>
+
+    <div class="section">
+        <h2>Instructions</h2>
+        <ol>
+            <li>Click "Test Store Repository" to add a test repository</li>
+            <li>Click "Test Store Bounty" to add a test bounty</li>
+            <li>Click "Test Pool Operations" to test pool balance management</li>
+            <li>Open the HackAura app and go to Developer Dashboard to see the test data</li>
+            <li>Use "Clear All Test Data" when finished testing</li>
+        </ol>
+    </div>
+</body>
+</html>

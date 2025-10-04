@@ -733,6 +733,9 @@ class OrganizationService {
 
       console.log('✅ Repository registration transaction:', result);
 
+      // Store repository in localStorage for Developer Dashboard
+      this.storeRegisteredRepository(repoMetadata);
+
       return {
         success: true,
         data: {
@@ -918,6 +921,32 @@ class OrganizationService {
     } catch (error) {
       console.error('❌ Failed to add to bounty:', error);
       return 0;
+    }
+  }
+
+  /**
+   * Store registered repository for Developer Dashboard
+   * @param {Object} repoMetadata - Repository metadata from IPFS
+   */
+  storeRegisteredRepository(repoMetadata) {
+    try {
+      const registeredRepos = JSON.parse(localStorage.getItem('hackAura_registered_repos') || '[]');
+      
+      // Check if repo already exists (prevent duplicates)
+      const existingIndex = registeredRepos.findIndex(repo => repo.id === repoMetadata.id);
+      
+      if (existingIndex >= 0) {
+        // Update existing repository
+        registeredRepos[existingIndex] = repoMetadata;
+      } else {
+        // Add new repository
+        registeredRepos.push(repoMetadata);
+      }
+      
+      localStorage.setItem('hackAura_registered_repos', JSON.stringify(registeredRepos));
+      console.log(`📦 Stored registered repository: ${repoMetadata.fullName}`);
+    } catch (error) {
+      console.error('❌ Failed to store registered repository:', error);
     }
   }
 }
