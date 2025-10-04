@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HackAura Integration Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        .success { color: green; }
+        .error { color: red; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>HackAura Developer Dashboard Test</h1>
+    
+    <div class="section">
+        <h2>Developer Dashboard Integration Test</h2>
+        <button onclick="clearAndTest()">Clear Data & Test Empty State</button>
+        <button onclick="addTestRepo()">Add Test Repository</button>
+        <button onclick="checkDashboard()">Open Developer Dashboard</button>
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        function clearAndTest() {
+            // Clear all localStorage data
+            localStorage.removeItem('hackAura_registered_repos');
+            localStorage.removeItem('hackAura_bounties');
+            localStorage.removeItem('hackAura_repo_pools');
+            
+            document.getElementById('testResults').innerHTML = 
+                '<div class="success">✅ All data cleared! Developer Dashboard should now show empty state.</div>';
+        }
+
+        function addTestRepo() {
+            const testRepo = {
+                id: 123456789,
+                name: "test-hackathon-repo",
+                fullName: "testuser/test-hackathon-repo",
+                description: "A test repository for HackAura bounty system",
+                htmlUrl: "https://github.com/testuser/test-hackathon-repo",
+                cloneUrl: "https://github.com/testuser/test-hackathon-repo.git",
+                language: "JavaScript",
+                stars: 42,
+                forks: 7,
+                openIssues: 3,
+                owner: {
+                    login: "testuser",
+                    avatarUrl: "https://github.com/testuser.png"
+                },
+                organizer: {
+                    address: "0x1234567890abcdef",
+                    registeredAt: new Date().toISOString()
+                },
+                hackAura: {
+                    poolBalance: '500',
+                    totalBounties: 2,
+                    activeBounties: 2,
+                    completedBounties: 0
+                },
+                issues: [
+                    {
+                        id: "1",
+                        title: "Add dark mode support",
+                        description: "Implement dark mode toggle with theme persistence",
+                        bounty_amount: 100,
+                        status: "open",
+                        tech_stack: ["React", "TypeScript", "CSS"],
+                        github_issue_url: "https://github.com/testuser/test-hackathon-repo/issues/1",
+                    },
+                    {
+                        id: "2", 
+                        title: "Fix responsive layout bug",
+                        description: "Mobile layout breaks on small screens",
+                        bounty_amount: 75,
+                        status: "open",
+                        tech_stack: ["CSS", "HTML", "React"],
+                        github_issue_url: "https://github.com/testuser/test-hackathon-repo/issues/2",
+                    }
+                ]
+            };
+            
+            // Add test bounties
+            const bounties = {};
+            testRepo.issues.forEach(issue => {
+                const bountyKey = `${testRepo.id}_${issue.id}`;
+                bounties[bountyKey] = {
+                    repoId: testRepo.id.toString(),
+                    issueId: issue.id,
+                    amount: issue.bounty_amount,
+                    fundingSource: 'pool',
+                    transactionHash: '0xtest' + issue.id,
+                    createdAt: new Date().toISOString(),
+                    status: 'active'
+                };
+            });
+            
+            // Add pool balance
+            const pools = {};
+            pools[testRepo.id] = '500.000000';
+            
+            // Store in localStorage
+            const registeredRepos = [testRepo];
+            localStorage.setItem('hackAura_registered_repos', JSON.stringify(registeredRepos));
+            localStorage.setItem('hackAura_bounties', JSON.stringify(bounties));
+            localStorage.setItem('hackAura_repo_pools', JSON.stringify(pools));
+            
+            document.getElementById('testResults').innerHTML = 
+                '<div class="success">✅ Test repository added with 2 bounties (100 + 75 = 175 HLUSD total)</div>' +
+                '<div>Repository: ' + testRepo.fullName + '</div>' +
+                '<div>Pool Balance: 500 HLUSD</div>' +
+                '<div>Issues with bounties: ' + testRepo.issues.length + '</div>';
+        }
+
+        function checkDashboard() {
+            window.open('http://localhost:3002', '_blank');
+        }
+    </script>
+
+    <div class="section">
+        <h2>Enhanced Registration Test Instructions</h2>
+        <ol>
+            <li><strong>Test Empty State:</strong> Click "Clear Data & Test Empty State" then "Open Developer Dashboard" - should show "No Repositories Yet" with a link to register repositories</li>
+            <li><strong>Test Registration Flow:</strong> 
+                <ul>
+                    <li>Click "Open Developer Dashboard" → Click "Register Repository" → Should navigate to Organization Dashboard</li>
+                    <li>In Organization Dashboard, you should see your GitHub repositories with "Register" buttons</li>
+                    <li>Click "Register" on any repository to register it (simulated by adding test data below)</li>
+                </ul>
+            </li>
+            <li><strong>Test With Registered Data:</strong> Click "Add Test Repository" then "Open Developer Dashboard" - should show the test repo with bounties and proper data integration</li>
+            <li><strong>Verify Complete Flow:</strong> Registered repositories should appear in Developer Dashboard with real bounty amounts and pool balances</li>
+        </ol>
+        
+        <div style="background: #f0f8ff; padding: 10px; border-radius: 5px; margin-top: 10px;">
+            <strong>🎯 New Seamless Flow:</strong><br>
+            Organization Dashboard → Select GitHub Repo → Click "Register" → Repo appears in Developer Dashboard
+        </div>
+    </div>
+</body>
+</html>

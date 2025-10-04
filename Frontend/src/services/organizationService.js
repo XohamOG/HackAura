@@ -675,8 +675,8 @@ class OrganizationService {
       // Ensure user is on HelaChain testnet
       await this.ensureHelaChainNetwork();
 
-      // Import IPFS service
-      const { default: IPFSService } = await import('./ipfsService.js');
+      // Import IPFS service singleton instance
+      const { ipfsService } = await import('./ipfsService.js');
 
       // Prepare repository metadata for IPFS
       const repoMetadata = {
@@ -709,7 +709,7 @@ class OrganizationService {
       console.log('📦 Uploading repository metadata to IPFS:', repoMetadata);
 
       // Upload to IPFS via Lighthouse
-      const ipfsHash = await IPFSService.uploadJSON(repoMetadata);
+      const ipfsHash = await ipfsService.uploadJSON(repoMetadata);
       
       console.log('✅ Repository uploaded to IPFS:', ipfsHash);
 

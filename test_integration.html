@@ -161,11 +161,22 @@
             localStorage.removeItem('hackAura_bounties');
             localStorage.removeItem('hackAura_repo_pools');
             alert('✅ All test data cleared');
+            location.reload();
+        }
+
+        // Initialize with empty state to test
+        function testEmptyState() {
+            clearTestData();
+            setTimeout(() => {
+                document.getElementById('repoResults').innerHTML = 
+                    '<div class="success">✅ Test data cleared - check Developer Dashboard for empty state</div>';
+            }, 100);
         }
     </script>
 
     <div class="section">
-        <h2>Cleanup</h2>
+        <h2>Testing</h2>
+        <button onclick="testEmptyState()" style="background-color: #4ecdc4; color: white;">Test Empty State</button>
         <button onclick="clearTestData()" style="background-color: #ff6b6b; color: white;">Clear All Test Data</button>
     </div>
 

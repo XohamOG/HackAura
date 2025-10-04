@@ -34,6 +34,20 @@ export default function OrganizationDashboard() {
   const [registerModal, setRegisterModal] = useState({ isOpen: false })
   const [repoUrl, setRepoUrl] = useState('')
   const [isRegistering, setIsRegistering] = useState(false)
+  const [registeredRepos, setRegisteredRepos] = useState(new Set())
+
+  // Check if a repository is already registered
+  const isRepoRegistered = (repoId) => {
+    const registeredReposData = JSON.parse(localStorage.getItem('hackAura_registered_repos') || '[]')
+    return registeredReposData.some(repo => repo.id.toString() === repoId.toString())
+  }
+
+  // Load registered repositories on component mount
+  useEffect(() => {
+    const registeredReposData = JSON.parse(localStorage.getItem('hackAura_registered_repos') || '[]')
+    const registeredIds = new Set(registeredReposData.map(repo => repo.id.toString()))
+    setRegisteredRepos(registeredIds)
+  }, [])
 
   // Function to handle viewing issues - now fetches from GitHub API
   const handleViewIssues = async (repo) => {
@@ -316,6 +330,61 @@ export default function OrganizationDashboard() {
     setRegisterModal({ isOpen: true })
   }
 
+  // Handle direct repository registration from card
+  const handleQuickRegister = async (repo) => {
+    if (!walletAddress) {
+      try {
+        await connectWallet()
+      } catch (error) {
+        return
+      }
+    }
+
+    setIsRegistering(true)
+
+    try {
+      console.log(`📦 Registering repository: ${repo.full_name}`)
+
+      // Create repository data object in the format expected by registerRepository
+      const repoData = {
+        id: repo.id,
+        name: repo.name,
+        full_name: repo.full_name,
+        description: repo.description,
+        html_url: repo.html_url,
+        clone_url: `${repo.html_url}.git`,
+        language: repo.language,
+        stargazers_count: repo.stars,
+        forks_count: repo.forks || 0,
+        open_issues_count: repo.activeIssues,
+        owner: {
+          login: repo.owner,
+          avatar_url: `https://github.com/${repo.owner}.png`
+        }
+      }
+
+      // Register repository with IPFS and smart contract
+      const result = await organizationService.registerRepository(repoData, walletAddress)
+
+      if (result.success) {
+        alert(`✅ Repository "${repo.name}" registered successfully!\nIPFS Hash: ${result.data.ipfsHash}\nTransaction: ${result.data.transactionHash}`)
+        
+        // Update registered repos state
+        setRegisteredRepos(prev => new Set([...prev, repo.id.toString()]))
+        
+        // Refresh pool balances
+        await loadAllPoolBalances(repositories)
+      } else {
+        throw new Error(result.error || 'Failed to register repository')
+      }
+    } catch (error) {
+      console.error('❌ Repository registration error:', error)
+      alert(`❌ Failed to register repository: ${error.message}`)
+    } finally {
+      setIsRegistering(false)
+    }
+  }
+
   const processRepositoryRegistration = async () => {
     if (!repoUrl.trim()) {
       alert('Please enter a GitHub repository URL')
@@ -567,9 +636,15 @@ export default function OrganizationDashboard() {
             </TabsList>
 
             <TabsContent value="repositories" className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-semibold">Your Repositories</h2>
-                <div className="flex items-center gap-3">
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-2xl font-semibold">Your Repositories</h2>
+                    <p className="text-muted-foreground text-sm mt-1">
+                      Click "Register" on any repository to make it available in the Developer Dashboard with bounty support.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
                   <Button 
                     variant="outline" 
                     className="flex items-center gap-2"
@@ -584,11 +659,12 @@ export default function OrganizationDashboard() {
                     Refresh Pools
                   </Button>
                   <Button 
+                    variant="outline"
                     className="flex items-center gap-2"
                     onClick={handleRegisterRepository}
                   >
                     <Plus className="w-4 h-4" />
-                    Add Repository
+                    Register by URL
                   </Button>
                 </div>
               </div>
@@ -643,29 +719,66 @@ export default function OrganizationDashboard() {
                           </div>
                         </div>
 
-                        <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            className="flex-1"
-                            onClick={() => handleDonation(repo)}
-                          >
-                            <DollarSign className="w-4 h-4 mr-1" />
-                            Donate
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            className="flex-1"
-                            onClick={() => handleViewIssues(repo)}
-                          >
-                            View Issues
-                          </Button>
+                        <div className="space-y-2">
+                          {/* Registration Status */}
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">Registration Status:</span>
+                            {isRepoRegistered(repo.id) ? (
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Registered
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
+                                <Clock className="w-3 h-3 mr-1" />
+                                Not Registered
+                              </Badge>
+                            )}
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex gap-2">
+                            {!isRepoRegistered(repo.id) ? (
+                              <Button 
+                                size="sm" 
+                                className="flex-1"
+                                onClick={() => handleQuickRegister(repo)}
+                                disabled={isRegistering}
+                              >
+                                {isRegistering ? (
+                                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                ) : (
+                                  <Plus className="w-4 h-4 mr-1" />
+                                )}
+                                Register
+                              </Button>
+                            ) : (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => handleDonation(repo)}
+                              >
+                                <DollarSign className="w-4 h-4 mr-1" />
+                                Donate
+                              </Button>
+                            )}
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="flex-1"
+                              onClick={() => handleViewIssues(repo)}
+                            >
+                              View Issues
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
                   </motion.div>
                 ))}
               </div>
+            </div>
             </TabsContent>
 
             <TabsContent value="activity" className="space-y-6">
