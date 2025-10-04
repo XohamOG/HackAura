@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button"
 import { Badge } from "../components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
-import { Building2, DollarSign, GitBranch, Users, Plus, ExternalLink, Clock, CheckCircle, Loader2, AlertCircle, Star, Heart } from "lucide-react"
+import { Building2, DollarSign, GitBranch, Users, Plus, ExternalLink, Clock, CheckCircle, Loader2, AlertCircle, Star, FileText, Tag } from "lucide-react"
 import { motion } from "framer-motion"
 
 export default function OrganizationDashboard() {
@@ -11,91 +11,96 @@ export default function OrganizationDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selectedRepo, setSelectedRepo] = useState(null)
-  const [donationModal, setDonationModal] = useState({ isOpen: false, repo: null })
-  const [donationAmount, setDonationAmount] = useState('')
-  const [isDonating, setIsDonating] = useState(false)
+  const [issuesModal, setIssuesModal] = useState({ isOpen: false, repo: null, issues: [] })
+  const [bountyModal, setBountyModal] = useState({ isOpen: false, issue: null })
+  const [bountyAmount, setBountyAmount] = useState('')
+  const [isAddingBounty, setIsAddingBounty] = useState(false)
 
-  // Donation function
-  const handleDonate = async (repo) => {
-    setDonationModal({ isOpen: true, repo })
+  // Mock issues data (in real app, this would come from GitHub API)
+  const mockIssues = [
+    {
+      id: 1,
+      title: "Add dark mode support",
+      description: "Implement dark mode toggle with theme persistence across the application",
+      state: "open",
+      labels: ["enhancement", "ui"],
+      created_at: "2024-01-15",
+      bounty_amount: 0,
+      html_url: "https://github.com/example/repo/issues/1"
+    },
+    {
+      id: 2,
+      title: "Fix responsive layout bug",
+      description: "Mobile layout breaks on small screens, need to fix CSS grid issues",
+      state: "open",
+      labels: ["bug", "css"],
+      created_at: "2024-01-10",
+      bounty_amount: 0,
+      html_url: "https://github.com/example/repo/issues/2"
+    },
+    {
+      id: 3,
+      title: "Add accessibility features",
+      description: "Implement ARIA labels and keyboard navigation for better accessibility",
+      state: "open",
+      labels: ["accessibility", "enhancement"],
+      created_at: "2024-01-08",
+      bounty_amount: 0,
+      html_url: "https://github.com/example/repo/issues/3"
+    },
+    {
+      id: 4,
+      title: "Update documentation",
+      description: "API documentation needs to be updated with latest changes",
+      state: "open",
+      labels: ["documentation"],
+      created_at: "2024-01-05",
+      bounty_amount: 0,
+      html_url: "https://github.com/example/repo/issues/4"
+    }
+  ]
+
+  // Function to handle viewing issues
+  const handleViewIssues = (repo) => {
+    setIssuesModal({ isOpen: true, repo, issues: mockIssues })
   }
 
-  const processDonation = async () => {
-    if (!donationAmount || parseFloat(donationAmount) <= 0) {
-      alert('Please enter a valid donation amount')
+  // Function to handle adding bounty to an issue
+  const handleAddBounty = (issue) => {
+    setBountyModal({ isOpen: true, issue })
+  }
+
+  // Function to process bounty addition
+  const processAddBounty = async () => {
+    if (!bountyAmount || parseFloat(bountyAmount) <= 0) {
+      alert('Please enter a valid bounty amount')
       return
     }
 
-    setIsDonating(true)
+    setIsAddingBounty(true)
 
     try {
-      // Check if MetaMask is installed
-      if (typeof window.ethereum === 'undefined') {
-        alert('MetaMask is not installed. Please install MetaMask to make donations.')
-        return
-      }
-
-      // Request account access
-      await window.ethereum.request({ method: 'eth_requestAccounts' })
-
-      // Get the user's account
-      const accounts = await window.ethereum.request({ method: 'eth_accounts' })
-      const fromAccount = accounts[0]
-
-      if (!fromAccount) {
-        alert('No account found. Please connect your MetaMask wallet.')
-        return
-      }
-
-      // Convert donation amount to Wei (ETH to Wei conversion)
-      const amountInWei = window.ethereum.utils?.toWei(donationAmount, 'ether') || 
-                         (parseFloat(donationAmount) * Math.pow(10, 18)).toString(16)
-
-      // Dummy recipient address (in real app, this would be the repo owner's wallet)
-      const recipientAddress = '0x742d35Cc6635C0532925a3b8D0b17A30C6638bF1' // Example address
-
-      // Prepare transaction
-      const transactionParameters = {
-        to: recipientAddress,
-        from: fromAccount,
-        value: '0x' + parseInt(amountInWei).toString(16),
-        gas: '0x5208', // 21000 gas limit for simple transfers
-        gasPrice: '0x9184e72a000', // 10 gwei
-      }
-
-      // Send transaction
-      const txHash = await window.ethereum.request({
-        method: 'eth_sendTransaction',
-        params: [transactionParameters],
-      })
-
-      console.log('✅ Donation transaction sent:', txHash)
+      // Simulate API call to add bounty
+      await new Promise(resolve => setTimeout(resolve, 1000))
       
-      // Update the repository's bounty pool locally
-      setRepositories(prevRepos => 
-        prevRepos.map(r => 
-          r.id === donationModal.repo.id 
-            ? { ...r, bountyPool: r.bountyPool + parseFloat(donationAmount) * 1000 } // Convert ETH to USD equivalent
-            : r
-        )
+      // Update the issue with the bounty amount
+      const updatedIssues = issuesModal.issues.map(issue => 
+        issue.id === bountyModal.issue.id 
+          ? { ...issue, bounty_amount: parseFloat(bountyAmount) }
+          : issue
       )
-
-      alert(`🎉 Donation successful! Transaction hash: ${txHash}`)
-      setDonationModal({ isOpen: false, repo: null })
-      setDonationAmount('')
+      
+      setIssuesModal(prev => ({ ...prev, issues: updatedIssues }))
+      
+      alert(`✅ Bounty of $${bountyAmount} added successfully!`)
+      setBountyModal({ isOpen: false, issue: null })
+      setBountyAmount('')
 
     } catch (error) {
-      console.error('❌ Donation failed:', error)
-      
-      if (error.code === 4001) {
-        alert('Transaction was cancelled by user.')
-      } else if (error.code === -32603) {
-        alert('Transaction failed. Please check your wallet balance and try again.')
-      } else {
-        alert(`Donation failed: ${error.message}`)
-      }
+      console.error('❌ Failed to add bounty:', error)
+      alert('Failed to add bounty. Please try again.')
     } finally {
-      setIsDonating(false)
+      setIsAddingBounty(false)
     }
   }
 
@@ -316,13 +321,9 @@ export default function OrganizationDashboard() {
                         <div className="flex gap-2">
                           <Button 
                             size="sm" 
-                            className="flex-1 gap-1" 
-                            onClick={() => handleDonate(repo)}
+                            className="flex-1"
+                            onClick={() => handleViewIssues(repo)}
                           >
-                            <Heart className="w-3 h-3" />
-                            Donate
-                          </Button>
-                          <Button variant="outline" size="sm" className="flex-1">
                             View Issues
                           </Button>
                         </div>
@@ -356,8 +357,94 @@ export default function OrganizationDashboard() {
         )}
       </div>
 
-      {/* Donation Modal */}
-      {donationModal.isOpen && (
+      {/* Issues Modal */}
+      {issuesModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[80vh] overflow-hidden"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-xl font-semibold flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  Issues for {issuesModal.repo?.name}
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  {issuesModal.issues.length} open issues
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setIssuesModal({ isOpen: false, repo: null, issues: [] })}
+              >
+                Close
+              </Button>
+            </div>
+            
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+              {issuesModal.issues.map((issue, index) => (
+                <motion.div
+                  key={issue.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                  className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="font-medium text-lg">{issue.title}</h4>
+                        <Badge variant={issue.state === 'open' ? 'default' : 'secondary'}>
+                          {issue.state}
+                        </Badge>
+                        {issue.bounty_amount > 0 && (
+                          <Badge className="bg-green-100 text-green-800">
+                            ${issue.bounty_amount} bounty
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                        {issue.description}
+                      </p>
+                      <div className="flex items-center gap-3 text-xs text-gray-500">
+                        <span>Created: {new Date(issue.created_at).toLocaleDateString()}</span>
+                        <div className="flex items-center gap-1">
+                          <Tag className="w-3 h-3" />
+                          {issue.labels.join(', ')}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2 ml-4">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => window.open(issue.html_url, '_blank')}
+                        className="gap-1"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        View on GitHub
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleAddBounty(issue)}
+                        className="gap-1"
+                      >
+                        <DollarSign className="w-3 h-3" />
+                        Add Bounty
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Add Bounty Modal */}
+      {bountyModal.isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -365,66 +452,65 @@ export default function OrganizationDashboard() {
             className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4"
           >
             <div className="flex items-center gap-3 mb-4">
-              <Heart className="w-6 h-6 text-red-500" />
-              <h3 className="text-lg font-semibold">Donate to {donationModal.repo?.name}</h3>
+              <DollarSign className="w-6 h-6 text-green-600" />
+              <h3 className="text-lg font-semibold">Add Bounty</h3>
             </div>
             
             <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-              Support this repository by donating cryptocurrency. Your donation will help fund development and improvements.
+              Add a bounty to incentivize developers to work on this issue:
             </p>
+
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-4">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                <strong>Issue:</strong> {bountyModal.issue?.title}<br />
+                <strong>Current Bounty:</strong> ${bountyModal.issue?.bounty_amount || 0}
+              </p>
+            </div>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Donation Amount (ETH)
+                  Bounty Amount (USD)
                 </label>
                 <input
                   type="number"
-                  step="0.001"
-                  min="0.001"
-                  placeholder="0.01"
-                  value={donationAmount}
-                  onChange={(e) => setDonationAmount(e.target.value)}
+                  step="10"
+                  min="10"
+                  placeholder="100"
+                  value={bountyAmount}
+                  onChange={(e) => setBountyAmount(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Minimum: 0.001 ETH (~$2.50 USD)
-                </p>
-              </div>
-
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  <strong>Repository:</strong> {donationModal.repo?.name}<br />
-                  <strong>Current Pool:</strong> ${donationModal.repo?.bountyPool?.toLocaleString()}<br />
-                  <strong>Your Donation:</strong> {donationAmount ? `${donationAmount} ETH` : '0 ETH'}
+                  Minimum: $10 USD
                 </p>
               </div>
 
               <div className="flex gap-3">
                 <Button
-                  onClick={processDonation}
-                  disabled={isDonating || !donationAmount}
+                  onClick={processAddBounty}
+                  disabled={isAddingBounty || !bountyAmount}
                   className="flex-1 gap-2"
                 >
-                  {isDonating ? (
+                  {isAddingBounty ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Processing...
+                      Adding...
                     </>
                   ) : (
                     <>
-                      <Heart className="w-4 h-4" />
-                      Donate Now
+                      <DollarSign className="w-4 h-4" />
+                      Add Bounty
                     </>
                   )}
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => {
-                    setDonationModal({ isOpen: false, repo: null })
-                    setDonationAmount('')
+                    setBountyModal({ isOpen: false, issue: null })
+                    setBountyAmount('')
                   }}
-                  disabled={isDonating}
+                  disabled={isAddingBounty}
                   className="flex-1"
                 >
                   Cancel
@@ -432,8 +518,8 @@ export default function OrganizationDashboard() {
               </div>
 
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                <p>⚡ Powered by MetaMask & Ethereum</p>
-                <p>🔒 Secure blockchain transaction</p>
+                <p>💰 Bounties help attract skilled developers</p>
+                <p>🚀 Higher bounties get faster results</p>
               </div>
             </div>
           </motion.div>
