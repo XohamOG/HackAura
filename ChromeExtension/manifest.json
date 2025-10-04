@@ -1,0 +1,53 @@
+{
+  "manifest_version": 3,
+  "name": "Git Hunters - GitHub Integration",
+  "version": "1.0.0",
+  "description": "Integrate Git Hunters bounties directly into GitHub issues and manage repositories",
+  
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting",
+    "https://github.com/*",
+    "https://api.github.com/*",
+    "https://localhost:4000/*"
+  ],
+  
+  "host_permissions": [
+    "https://github.com/*",
+    "https://api.github.com/*",
+    "http://localhost:4000/*",
+    "https://localhost:4000/*"
+  ],
+  
+  "content_scripts": [
+    {
+      "matches": ["https://github.com/*/issues*", "https://github.com/*/issues/*"],
+      "js": ["content-scripts/github-issues.js"],
+      "css": ["styles/github-integration.css"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["https://github.com/*/*"],
+      "js": ["content-scripts/github-repo.js"],
+      "css": ["styles/github-integration.css"],
+      "run_at": "document_end"
+    }
+  ],
+  
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Git Hunters"
+  },
+  
+  "web_accessible_resources": [
+    {
+      "resources": ["styles/*", "images/*"],
+      "matches": ["https://github.com/*"]
+    }
+  ]
+}
