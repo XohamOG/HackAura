@@ -1,9 +1,9 @@
-# Git Hunter Frontend (React + Vite + Tailwind)
+# Git Hunters Frontend (React + Vite + Tailwind)
 
-A modern React frontend built with Vite, featuring the same design system as the original Next.js git-hunter app. Includes beautiful animations with Framer Motion and a complete UI component library with Radix UI.
+A modern React frontend built with Vite, featuring the same design system as the original Next.js Git Hunters app. Includes beautiful animations with Framer Motion and a complete UI component library with Radix UI.
 
 ## Features
-- 🎨 **Same Design System**: Identical fonts, colors, layout, and theme as git-hunter
+- 🎨 **Same Design System**: Identical fonts, colors, layout, and theme as Git Hunters
 - ⚡ **Fast & Modern**: Built with Vite for lightning-fast development
 - 🎭 **Beautiful Animations**: Framer Motion animations throughout
 - 🧩 **Component Library**: Complete UI library with Radix UI primitives

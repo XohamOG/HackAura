@@ -109,7 +109,7 @@ export default function LandingPage() {
                 stiffness: 100
               }}
             >
-              Git Hunter
+              Git Hunters
             </motion.h1>
           </motion.div>
         )}
@@ -132,7 +132,7 @@ export default function LandingPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 1.5, ease: "easeOut" }}
               >
-                GitHunter
+                Git Hunters
               </motion.h1>
             </motion.div>
           )}

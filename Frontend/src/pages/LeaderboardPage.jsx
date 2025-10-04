@@ -116,7 +116,7 @@ export default function LeaderboardPage() {
           transition={{ duration: 0.6 }}
         >
           <h1 className="text-4xl font-bold font-heading mb-2">Leaderboard</h1>
-          <p className="text-muted-foreground text-lg">Top performers in the Git Hunter community</p>
+          <p className="text-muted-foreground text-lg">Top performers in the Git Hunters community</p>
         </motion.div>
 
         <motion.div
