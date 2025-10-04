@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const session = require('express-session');
 require('dotenv').config();
 
 const app = express();
@@ -11,6 +12,12 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false } // Set to true in production with HTTPS
+}));
 
 // Health check
 app.get('/health', (req, res) => {
@@ -40,6 +47,10 @@ app.get('/', (req, res) => res.send('🎯 Git Hunters Backend API - Ready to Hun
 const contractRoutes = require('./api/contracts');
 app.use('/api/contracts', contractRoutes);
 
+// Authentication routes
+const authRoutes = require('../routes/auth');
+app.use('/api/auth', authRoutes);
+
 // Blockchain routes (legacy - for compatibility)
 try {
   const blockchainRoutes = require('./blockchain/routes');
@@ -58,7 +69,8 @@ app.use('*', (req, res) => {
     availableRoutes: [
       'GET /health',
       'GET /api/contracts/*',
-      'GET /api/blockchain/*'
+      'GET /api/blockchain/*',
+      'GET /api/auth/*'
     ]
   });
 });

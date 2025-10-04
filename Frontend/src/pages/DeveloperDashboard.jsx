@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useContext, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button"
 import { Badge } from "../components/ui/badge"
@@ -6,6 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { DollarSign, CheckCircle, Clock, ExternalLink, GitBranch, TrendingUp, Sparkles, Store } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
+import { AuthContext } from "../context/AuthContext"
+import githubOAuth from "../services/githubOAuth"
 
 const mockRepositories = [
   {
@@ -77,27 +79,150 @@ const mockRepositories = [
   },
 ]
 
-const completedBounties = [
-  {
-    id: "c1",
-    title: "Fix API rate limiting",
-    repo: "api-gateway",
-    bounty_amount: 350,
-    completed_date: "2024-01-15",
-    tech_stack: ["Node.js", "Express", "Redis"],
-  },
-  {
-    id: "c2",
-    title: "Add unit tests",
-    repo: "user-service",
-    bounty_amount: 250,
-    completed_date: "2024-01-10",
-    tech_stack: ["Jest", "TypeScript", "Node.js"],
-  },
-]
-
 export default function DeveloperDashboard() {
   const navigate = useNavigate()
+  const { user } = useContext(AuthContext)
+  const [repositories, setRepositories] = useState([])
+  const [bounties, setBounties] = useState([])
+  const [completedBounties, setCompletedBounties] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [stats, setStats] = useState({
+    totalRepos: 0,
+    activeBounties: 0,
+    totalRewards: '0',
+    completedBounties: 0
+  })
+
+  useEffect(() => {
+    if (user) {
+      loadDashboardData()
+    }
+  }, [user])
+
+  const loadDashboardData = async () => {
+    setIsLoading(true)
+    try {
+      // Load available repositories and bounties from backend API
+      await Promise.all([
+        loadRepositories(),
+        loadBounties(),
+        loadCompletedBounties(),
+        loadStats()
+      ])
+    } catch (error) {
+      console.error('Failed to load dashboard data:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const loadRepositories = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/repositories`)
+      if (response.ok) {
+        const data = await response.json()
+        setRepositories(data.repositories || mockRepositories)
+      } else {
+        // Fallback to mock data if API fails
+        setRepositories(mockRepositories)
+      }
+    } catch (error) {
+      console.error('Failed to load repositories:', error)
+      setRepositories(mockRepositories)
+    }
+  }
+
+  const loadBounties = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/bounties`)
+      if (response.ok) {
+        const data = await response.json()
+        setBounties(data.bounties || [])
+      }
+    } catch (error) {
+      console.error('Failed to load bounties:', error)
+      setBounties([])
+    }
+  }
+
+  const loadCompletedBounties = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/bounties/completed?developer=${user?.login}`)
+      if (response.ok) {
+        const data = await response.json()
+        setCompletedBounties(data.bounties || [])
+      } else {
+        // Fallback to mock data
+        setCompletedBounties([
+          {
+            id: "c1",
+            title: "Fix API rate limiting",
+            repo: "api-gateway",
+            bounty_amount: 350,
+            completed_date: "2024-01-15",
+            tech_stack: ["Node.js", "Express", "Redis"],
+          },
+          {
+            id: "c2",
+            title: "Add unit tests",
+            repo: "user-service",
+            bounty_amount: 250,
+            completed_date: "2024-01-10",
+            tech_stack: ["Jest", "TypeScript", "Node.js"],
+          },
+        ])
+      }
+    } catch (error) {
+      console.error('Failed to load completed bounties:', error)
+      setCompletedBounties([])
+    }
+  }
+
+  const loadStats = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/stats/developer/${user?.login}`)
+      if (response.ok) {
+        const data = await response.json()
+        setStats(data)
+      } else {
+        // Calculate stats from loaded data
+        const totalRepos = repositories.length
+        const activeBounties = repositories.reduce((sum, repo) => sum + repo.issues.length, 0)
+        const totalRewards = repositories.reduce((sum, repo) => sum + repo.totalBounty, 0)
+        const completedCount = completedBounties.length
+        
+        setStats({
+          totalRepos,
+          activeBounties,
+          totalRewards: totalRewards.toString(),
+          completedBounties: completedCount
+        })
+      }
+    } catch (error) {
+      console.error('Failed to load stats:', error)
+    }
+  }
+
+  const handleMetaMaskConnect = async () => {
+    try {
+      await githubOAuth.connectMetaMask()
+      // Refresh data after connecting
+      loadDashboardData()
+    } catch (error) {
+      console.error('Failed to connect MetaMask:', error)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-lg">Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
   const [selectedRepo, setSelectedRepo] = useState(mockRepositories[0])
 
   const totalEarnings = completedBounties.reduce((sum, bounty) => sum + bounty.bounty_amount, 0)
@@ -150,8 +275,8 @@ export default function DeveloperDashboard() {
               <GitBranch className="h-4 w-4 text-muted-foreground group-hover:text-purple-600 transition-colors" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">3</div>
-              <p className="text-xs text-muted-foreground">Currently working on</p>
+              <div className="text-2xl font-bold">{repositories.length}</div>
+              <p className="text-xs text-muted-foreground">Available repositories</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -162,7 +287,7 @@ export default function DeveloperDashboard() {
           transition={{ duration: 0.6, delay: 0.4 }}
         >
           <Tabs defaultValue="browse" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="browse" className="flex items-center gap-2">
                 <Store className="w-4 h-4" />
                 Browse Issues
@@ -170,6 +295,10 @@ export default function DeveloperDashboard() {
               <TabsTrigger value="completed" className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4" />
                 Completed
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                Settings
               </TabsTrigger>
             </TabsList>
 
@@ -329,6 +458,65 @@ export default function DeveloperDashboard() {
                       </div>
                     </motion.div>
                   ))}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="settings">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Developer Settings</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* MetaMask Connection */}
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Wallet Connection</h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Connect your MetaMask wallet to interact with HelaChain smart contracts.
+                    </p>
+                    <Button onClick={handleMetaMaskConnect}>
+                      Connect MetaMask to HelaChain
+                    </Button>
+                  </div>
+
+                  {/* Account Information */}
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Account Information</h3>
+                    <div className="space-y-2">
+                      <div><strong>GitHub:</strong> {user?.login || 'Not connected'}</div>
+                      <div><strong>Email:</strong> {user?.email || 'Not available'}</div>
+                      <div><strong>Member Since:</strong> {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Not available'}</div>
+                    </div>
+                  </div>
+
+                  {/* Notification Preferences */}
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Notifications</h3>
+                    <div className="space-y-2">
+                      <label className="flex items-center">
+                        <input type="checkbox" className="mr-2" defaultChecked />
+                        Email notifications for new bounty opportunities
+                      </label>
+                      <label className="flex items-center">
+                        <input type="checkbox" className="mr-2" defaultChecked />
+                        Browser notifications for bounty updates
+                      </label>
+                      <label className="flex items-center">
+                        <input type="checkbox" className="mr-2" />
+                        Weekly summary emails
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Refresh Data */}
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Data Management</h3>
+                    <div className="space-y-2">
+                      <Button onClick={loadDashboardData} variant="outline">
+                        Refresh All Data
+                      </Button>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
