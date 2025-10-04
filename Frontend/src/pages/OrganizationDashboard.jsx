@@ -1,74 +1,64 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button"
 import { Badge } from "../components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
-import { Building2, DollarSign, GitBranch, Users, Plus, ExternalLink, Clock, CheckCircle } from "lucide-react"
+import { Building2, DollarSign, GitBranch, Users, Plus, ExternalLink, Clock, CheckCircle, Loader2, AlertCircle, Star } from "lucide-react"
 import { motion } from "framer-motion"
 
-const mockOrganizationData = {
-  name: "TechCorp Solutions",
-  totalBountyPool: 15000,
-  activeRepositories: 8,
-  totalDevelopers: 24,
-  repositories: [
-    {
-      id: "1",
-      name: "awesome-react-components",
-      description: "A collection of reusable React components",
-      bountyPool: 2500,
-      activeIssues: 5,
-      completedIssues: 12,
-      stars: 2340
-    },
-    {
-      id: "2", 
-      name: "nextjs-starter-kit",
-      description: "Modern Next.js starter template",
-      bountyPool: 3200,
-      activeIssues: 3,
-      completedIssues: 8,
-      stars: 1890
-    },
-    {
-      id: "3",
-      name: "api-gateway",
-      description: "Microservices API gateway",
-      bountyPool: 4500,
-      activeIssues: 7,
-      completedIssues: 15,
-      stars: 3210
-    }
-  ],
-  recentActivity: [
-    {
-      id: "1",
-      type: "issue_completed",
-      title: "Fix authentication bug",
-      developer: "Sarah Chen",
-      amount: 300,
-      date: "2024-01-20"
-    },
-    {
-      id: "2",
-      type: "issue_created",
-      title: "Add dark mode support",
-      amount: 500,
-      date: "2024-01-19"
-    },
-    {
-      id: "3",
-      type: "issue_completed",
-      title: "Optimize database queries",
-      developer: "Alex Rodriguez",
-      amount: 400,
-      date: "2024-01-18"
-    }
-  ]
-}
-
 export default function OrganizationDashboard() {
-  const [selectedRepo, setSelectedRepo] = useState(mockOrganizationData.repositories[0])
+  const [repositories, setRepositories] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [selectedRepo, setSelectedRepo] = useState(null)
+
+  // Fetch repositories from GitHub API
+  useEffect(() => {
+    const fetchRepositories = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        console.log('🔄 Fetching repositories from GitHub API...')
+        const response = await fetch('/api/auth/repos')
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch repositories: ${response.status}`)
+        }
+        
+        const repos = await response.json()
+        console.log('✅ Repositories fetched successfully:', repos.length, 'repos')
+        
+        // Transform GitHub API data to our format
+        const transformedRepos = repos.map(repo => ({
+          id: repo.id.toString(),
+          name: repo.name,
+          description: repo.description || 'No description available',
+          bountyPool: Math.floor(Math.random() * 5000) + 1000,
+          activeIssues: repo.open_issues_count || 0,
+          completedIssues: Math.floor(Math.random() * 20),
+          stars: repo.stargazers_count || 0,
+          language: repo.language,
+          updated_at: repo.updated_at,
+          html_url: repo.html_url,
+          private: repo.private,
+          fork: repo.fork,
+          forks_count: repo.forks_count || 0,
+          watchers_count: repo.watchers_count || 0
+        }))
+        
+        setRepositories(transformedRepos)
+        setSelectedRepo(transformedRepos[0] || null)
+      } catch (err) {
+        console.error('❌ Error fetching repositories:', err)
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchRepositories()
+  }, [])
 
   return (
     <div className="min-h-screen bg-background">
@@ -82,6 +72,30 @@ export default function OrganizationDashboard() {
           <p className="text-muted-foreground text-lg">Manage your repositories and bounties</p>
         </motion.div>
 
+        {loading && (
+          <motion.div 
+            className="flex items-center justify-center py-12"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <Loader2 className="w-8 h-8 animate-spin mr-3" />
+            <span className="text-lg">Loading repositories from GitHub...</span>
+          </motion.div>
+        )}
+
+        {error && (
+          <motion.div 
+            className="flex items-center justify-center py-12 text-red-600"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <AlertCircle className="w-8 h-8 mr-3" />
+            <span className="text-lg">Error: {error}</span>
+          </motion.div>
+        )}
+
+        {!loading && !error && (
+          <>
         {/* Stats Cards */}
         <motion.div 
           className="grid grid-cols-1 md:grid-cols-4 gap-6"
@@ -95,7 +109,9 @@ export default function OrganizationDashboard() {
               <DollarSign className="h-4 w-4 text-muted-foreground group-hover:text-green-600 transition-colors" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${mockOrganizationData.totalBountyPool.toLocaleString()}</div>
+              <div className="text-2xl font-bold">
+                ${repositories.reduce((total, repo) => total + repo.bountyPool, 0).toLocaleString()}
+              </div>
               <p className="text-xs text-muted-foreground">Available for bounties</p>
             </CardContent>
           </Card>
@@ -106,8 +122,8 @@ export default function OrganizationDashboard() {
               <GitBranch className="h-4 w-4 text-muted-foreground group-hover:text-blue-600 transition-colors" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{mockOrganizationData.activeRepositories}</div>
-              <p className="text-xs text-muted-foreground">With open bounties</p>
+              <div className="text-2xl font-bold">{repositories.length}</div>
+              <p className="text-xs text-muted-foreground">GitHub repositories</p>
             </CardContent>
           </Card>
 
@@ -117,19 +133,23 @@ export default function OrganizationDashboard() {
               <Users className="h-4 w-4 text-muted-foreground group-hover:text-purple-600 transition-colors" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{mockOrganizationData.totalDevelopers}</div>
-              <p className="text-xs text-muted-foreground">Contributing to projects</p>
+              <div className="text-2xl font-bold">
+                {repositories.reduce((total, repo) => total + repo.activeIssues, 0)}
+              </div>
+              <p className="text-xs text-muted-foreground">Open issues</p>
             </CardContent>
           </Card>
 
           <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Organization</CardTitle>
-              <Building2 className="h-4 w-4 text-muted-foreground group-hover:text-orange-600 transition-colors" />
+              <CardTitle className="text-sm font-medium">Total Stars</CardTitle>
+              <Star className="h-4 w-4 text-muted-foreground group-hover:text-yellow-600 transition-colors" />
             </CardHeader>
             <CardContent>
-              <div className="text-lg font-bold">{mockOrganizationData.name}</div>
-              <p className="text-xs text-muted-foreground">Your organization</p>
+              <div className="text-2xl font-bold">
+                {repositories.reduce((total, repo) => total + repo.stars, 0).toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground">GitHub stars</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -161,7 +181,7 @@ export default function OrganizationDashboard() {
               </div>
 
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {mockOrganizationData.repositories.map((repo, index) => (
+                {repositories.map((repo, index) => (
                   <motion.div
                     key={repo.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -177,7 +197,11 @@ export default function OrganizationDashboard() {
                             </CardTitle>
                             <p className="text-muted-foreground text-sm mt-1">{repo.description}</p>
                           </div>
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => window.open(repo.html_url, '_blank')}
+                          >
                             <ExternalLink className="w-4 h-4" />
                           </Button>
                         </div>
@@ -226,48 +250,18 @@ export default function OrganizationDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {mockOrganizationData.recentActivity.map((activity, index) => (
-                    <motion.div
-                      key={activity.id}
-                      className="p-4 border rounded-lg"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            {activity.type === 'issue_completed' ? (
-                              <CheckCircle className="w-4 h-4 text-green-500" />
-                            ) : (
-                              <Plus className="w-4 h-4 text-blue-500" />
-                            )}
-                            <span className="font-medium">{activity.title}</span>
-                          </div>
-                          
-                          {activity.developer && (
-                            <p className="text-sm text-muted-foreground mb-1">
-                              Completed by {activity.developer}
-                            </p>
-                          )}
-                          
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(activity.date).toLocaleDateString()}
-                          </p>
-                        </div>
-                        
-                        <Badge variant={activity.type === 'issue_completed' ? 'default' : 'secondary'}>
-                          <DollarSign className="w-3 h-3 mr-1" />
-                          ${activity.amount}
-                        </Badge>
-                      </div>
-                    </motion.div>
-                  ))}
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Clock className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No recent activity</p>
+                    <p className="text-sm">Activity from your repositories will appear here</p>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
           </Tabs>
         </motion.div>
+        </>
+        )}
       </div>
     </div>
   )

@@ -22,8 +22,15 @@ router.post('/wallet', (req, res) => {
 const CLIENT_ID = process.env.GITHUB_CLIENT_ID;
 const CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET;
 
+// Debug logging
+console.log('🔑 GitHub OAuth Config:');
+console.log('  CLIENT_ID:', CLIENT_ID ? 'Loaded ✅' : 'Missing ❌');
+console.log('  CLIENT_SECRET:', CLIENT_SECRET ? 'Loaded ✅' : 'Missing ❌');
+
 router.get('/github', (req, res) => {
-  const redirect_uri = 'http://localhost:4000/api/auth/github/callback';
+  console.log('🚀 GitHub OAuth initiated with CLIENT_ID:', CLIENT_ID);
+  const redirect_uri = process.env.GITHUB_REDIRECT_URI || 'http://localhost:4000/api/auth/github/callback';
+  console.log('🔗 Using redirect_uri:', redirect_uri);
   res.redirect(`https://github.com/login/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${redirect_uri}&scope=repo user`);
 });
 
@@ -39,8 +46,13 @@ router.get('/github/callback', async (req, res) => {
       },
       { headers: { Accept: 'application/json' } }
     );
+    
+    // Store the token and redirect to frontend with token
     req.session.githubToken = tokenRes.data.access_token;
-    res.redirect('http://localhost:3000/dashboard');
+    
+    // Also store it in a way frontend can access
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontendUrl}/auth?token=${tokenRes.data.access_token}`);
   } catch (err) {
     res.status(400).send('GitHub authentication failed');
   }
