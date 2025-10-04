@@ -61,6 +61,7 @@ export default {
         'calligraphic': ['Playfair Display', 'serif'],
         'heading': ['Inter', 'sans-serif'],
         'sans': ['Inter', 'sans-serif'],
+        'aston': ['Aston Script', 'cursive'],
       },
       keyframes: {
         "accordion-down": {
