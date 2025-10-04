@@ -4,15 +4,25 @@ require('dotenv').config();
 const contractConfig = {
   // Network Configuration
   networks: {
+    helalabs: {
+      rpcUrl: process.env.NETWORK_RPC_URL || 'https://mainnet-rpc.helachain.com',
+      chainId: parseInt(process.env.NETWORK_CHAIN_ID) || 8668,
+      name: process.env.NETWORK_NAME || 'HelaChain Mainnet',
+      symbol: process.env.NETWORK_SYMBOL || 'HELA',
+      explorer: process.env.NETWORK_EXPLORER || 'https://explorer.helachain.com'
+    },
+    'helalabs-testnet': {
+      rpcUrl: 'https://testnet-rpc.helachain.com',
+      chainId: 666888,
+      name: 'HelaChain Testnet',
+      symbol: 'HELA',
+      explorer: 'https://testnet-explorer.helachain.com'
+    },
+    // Legacy Polygon support
     polygon: {
-      rpcUrl: process.env.POLYGON_RPC_URL || 'https://polygon-rpc.com',
+      rpcUrl: 'https://polygon-rpc.com',
       chainId: 137,
       name: 'Polygon Mainnet'
-    },
-    'polygon-testnet': {
-      rpcUrl: process.env.POLYGON_TESTNET_RPC_URL || 'https://rpc-mumbai.maticvigil.com',
-      chainId: 80001,
-      name: 'Polygon Mumbai Testnet'
     }
   },
 

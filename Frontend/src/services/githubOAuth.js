@@ -1,10 +1,81 @@
-// GitHub OAuth Service
+// GitHub OAuth Service with HelaChain Integration
+import { ipfsService } from './ipfsService.js';
+
 class GitHubOAuthService {
   constructor() {
     this.clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
     this.redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI;
     this.scope = 'user:email,public_repo';
     this.baseURL = 'https://github.com/login/oauth';
+    this.apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+    
+    // HelaChain network configuration
+    this.helaChainConfig = {
+      chainId: '0x21dc', // 8668 in hex
+      chainName: 'HelaChain Mainnet',
+      nativeCurrency: {
+        name: 'HELA',
+        symbol: 'HELA',
+        decimals: 18
+      },
+      rpcUrls: ['https://mainnet-rpc.helachain.com'],
+      blockExplorerUrls: ['https://helascan.com']
+    };
+  }
+
+  // Check if MetaMask is available
+  isMetaMaskAvailable() {
+    return typeof window.ethereum !== 'undefined';
+  }
+
+  // Connect to MetaMask and ensure HelaChain network
+  async connectMetaMask() {
+    if (!this.isMetaMaskAvailable()) {
+      throw new Error('MetaMask not installed');
+    }
+
+    try {
+      // Request account access
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts'
+      });
+
+      // Check current network
+      const chainId = await window.ethereum.request({
+        method: 'eth_chainId'
+      });
+
+      // Switch to HelaChain if not already connected
+      if (chainId !== this.helaChainConfig.chainId) {
+        await this.switchToHelaChain();
+      }
+
+      return accounts[0];
+    } catch (error) {
+      console.error('MetaMask connection failed:', error);
+      throw error;
+    }
+  }
+
+  // Switch to HelaChain network
+  async switchToHelaChain() {
+    try {
+      // Try to switch to HelaChain
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: this.helaChainConfig.chainId }]
+      });
+    } catch (switchError) {
+      // If network doesn't exist, add it
+      if (switchError.code === 4902) {
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [this.helaChainConfig]
+        });
+      } else {
+        throw switchError;
+      }
+    }
   }
 
   // Generate OAuth URL
@@ -43,9 +114,7 @@ class GitHubOAuthService {
   // Exchange authorization code for access token
   async exchangeCodeForToken(code) {
     try {
-      // In a real application, this should be done on your backend
-      // For demo purposes, we'll simulate the token exchange
-      const response = await fetch('/api/auth/github/callback', {
+      const response = await fetch(`${this.apiBase}/auth/github/callback`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -61,6 +130,107 @@ class GitHubOAuthService {
       return data;
     } catch (error) {
       console.error('Error exchanging code for token:', error);
+      throw error;
+    }
+  }
+
+  // Register repository with HelaChain smart contract
+  async registerRepository(repoData, ipfsCredentials = null) {
+    try {
+      // Ensure MetaMask is connected
+      const walletAddress = await this.connectMetaMask();
+
+      // Upload metadata to IPFS
+      const metadata = ipfsService.formatRepositoryMetadata(repoData);
+      const ipfsHash = await ipfsService.uploadJSON(metadata, ipfsCredentials);
+
+      // Get transaction data from backend
+      const response = await fetch(`${this.apiBase}/contracts/register-repository`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          repoName: repoData.name,
+          ipfsHash: ipfsHash,
+          isPublic: repoData.isPublic !== false,
+          from: walletAddress
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to prepare transaction');
+      }
+
+      const { transactionData } = await response.json();
+
+      // Send transaction via MetaMask
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [transactionData]
+      });
+
+      return {
+        success: true,
+        txHash,
+        ipfsHash,
+        repositoryId: `${repoData.owner}/${repoData.name}`
+      };
+
+    } catch (error) {
+      console.error('Repository registration failed:', error);
+      throw error;
+    }
+  }
+
+  // Create bounty with HelaChain smart contract
+  async createBounty(bountyData, ipfsCredentials = null) {
+    try {
+      // Ensure MetaMask is connected
+      const walletAddress = await this.connectMetaMask();
+
+      // Upload bounty metadata to IPFS
+      const metadata = ipfsService.formatBountyMetadata(bountyData);
+      const ipfsHash = await ipfsService.uploadJSON(metadata, ipfsCredentials);
+
+      // Get transaction data from backend
+      const response = await fetch(`${this.apiBase}/contracts/create-bounty`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          repositoryId: bountyData.repositoryId,
+          amount: bountyData.amount,
+          ipfsHash: ipfsHash,
+          deadline: bountyData.deadline,
+          from: walletAddress
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to prepare bounty transaction');
+      }
+
+      const { transactionData } = await response.json();
+
+      // Send transaction via MetaMask
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [transactionData]
+      });
+
+      return {
+        success: true,
+        txHash,
+        ipfsHash,
+        bountyId: `${bountyData.repositoryId}-${Date.now()}`
+      };
+
+    } catch (error) {
+      console.error('Bounty creation failed:', error);
       throw error;
     }
   }

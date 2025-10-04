@@ -1,4 +1,4 @@
-// Git Hunters Chrome Extension Popup Script
+// Git Hunters Chrome Extension Popup Script - HelaChain Integration
 class GitHuntersPopup {
   constructor() {
     this.apiBase = 'http://localhost:4000';
@@ -6,6 +6,19 @@ class GitHuntersPopup {
     this.githubToken = null;
     this.metamaskConnected = false;
     this.currentTab = null;
+    
+    // HelaChain network configuration
+    this.helaChainConfig = {
+      chainId: '0x21dc', // 8668 in hex
+      chainName: 'HelaChain Mainnet',
+      nativeCurrency: {
+        name: 'HELA',
+        symbol: 'HELA',
+        decimals: 18
+      },
+      rpcUrls: ['https://mainnet-rpc.helachain.com'],
+      blockExplorerUrls: ['https://helascan.com']
+    };
     
     this.init();
   }
@@ -268,39 +281,34 @@ class GitHuntersPopup {
         if (accounts.length > 0) {
           const account = accounts[0];
           
-          // Verify we're on Polygon network
+          // Verify we're on HelaChain network
           const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-          if (chainId !== '0x89') { // Polygon mainnet chain ID
+          if (chainId !== this.helaChainConfig.chainId) {
             try {
               await window.ethereum.request({
                 method: 'wallet_switchEthereumChain',
-                params: [{ chainId: '0x89' }],
+                params: [{ chainId: this.helaChainConfig.chainId }],
               });
             } catch (switchError) {
               // Network not added, add it
-              await window.ethereum.request({
-                method: 'wallet_addEthereumChain',
-                params: [{
-                  chainId: '0x89',
-                  chainName: 'Polygon Mainnet',
-                  nativeCurrency: {
-                    name: 'MATIC',
-                    symbol: 'MATIC',
-                    decimals: 18
-                  },
-                  rpcUrls: ['https://polygon-rpc.com'],
-                  blockExplorerUrls: ['https://polygonscan.com']
-                }]
-              });
+              if (switchError.code === 4902) {
+                await window.ethereum.request({
+                  method: 'wallet_addEthereumChain',
+                  params: [this.helaChainConfig]
+                });
+              } else {
+                throw switchError;
+              }
             }
           }
           
           chrome.storage.sync.set({ 
-            metamask_account: account 
+            metamask_account: account,
+            network: 'helachain'
           }, () => {
             this.metamaskConnected = true;
             this.updateAuthStatus();
-            this.showMessage(`MetaMask connected: ${account.substring(0, 6)}...${account.substring(38)}`, 'success');
+            this.showMessage(`MetaMask connected to HelaChain: ${account.substring(0, 6)}...${account.substring(38)}`, 'success');
           });
         }
       } else {
