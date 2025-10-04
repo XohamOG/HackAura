@@ -3,11 +3,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button"
 import { Badge } from "../components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
-import { Building2, DollarSign, GitBranch, Users, Plus, ExternalLink, Clock, CheckCircle, Loader2, AlertCircle, Star, FileText, Tag } from "lucide-react"
+import { Building2, DollarSign, GitBranch, Users, Plus, ExternalLink, Clock, CheckCircle, Loader2, AlertCircle, Star, FileText, Tag, RefreshCw } from "lucide-react"
 import { motion } from "framer-motion"
 import organizationService from "../services/organizationService"
 
 export default function OrganizationDashboard() {
+  // Helper function to format HLUSD amounts cleanly
+  const formatHLUSD = (amount) => {
+    const num = parseFloat(amount || 0);
+    return num === 0 ? '0' : (num % 1 === 0 ? num.toString() : num.toFixed(6).replace(/\.?0+$/, ''));
+  };
+
   const [repositories, setRepositories] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -25,6 +31,9 @@ export default function OrganizationDashboard() {
   const [walletAddress, setWalletAddress] = useState(null)
   const [poolBalances, setPoolBalances] = useState({}) // Store pool balances for each repo
   const [isLoadingPools, setIsLoadingPools] = useState(false)
+  const [registerModal, setRegisterModal] = useState({ isOpen: false })
+  const [repoUrl, setRepoUrl] = useState('')
+  const [isRegistering, setIsRegistering] = useState(false)
 
   // Function to handle viewing issues - now fetches from GitHub API
   const handleViewIssues = async (repo) => {
@@ -42,7 +51,13 @@ export default function OrganizationDashboard() {
       const issues = await response.json()
       console.log(`✅ Successfully fetched ${issues.length} issues for ${repo.full_name}`)
       
-      setIssuesModal(prev => ({ ...prev, issues }))
+      // Load bounty amounts for each issue
+      const issuesWithBounties = issues.map(issue => ({
+        ...issue,
+        bounty_amount: organizationService.getBountyAmount(repo.id.toString(), issue.id.toString())
+      }))
+      
+      setIssuesModal(prev => ({ ...prev, issues: issuesWithBounties }))
     } catch (error) {
       console.error('❌ Failed to fetch issues:', error)
       setError(`Failed to load issues: ${error.message}`)
@@ -64,28 +79,49 @@ export default function OrganizationDashboard() {
       return
     }
 
+    if (!walletAddress) {
+      try {
+        await connectWallet()
+      } catch (error) {
+        return
+      }
+    }
+
     setIsAddingBounty(true)
 
     try {
-      // Simulate API call to add bounty
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Update the issue with the bounty amount
-      const updatedIssues = issuesModal.issues.map(issue => 
-        issue.id === bountyModal.issue.id 
-          ? { ...issue, bounty_amount: parseFloat(bountyAmount) }
-          : issue
+      console.log(`💰 Adding bounty of ${bountyAmount} HLUSD to issue ${bountyModal.issue.id}`)
+
+      const result = await organizationService.addBountyToIssue(
+        issuesModal.repo.id, // Pass repository ID
+        bountyModal.issue.id,
+        bountyAmount,
+        walletAddress,
+        bountyModal.issue.title,
+        bountyModal.issue.html_url
       )
-      
-      setIssuesModal(prev => ({ ...prev, issues: updatedIssues }))
-      
-      alert(`✅ Bounty of $${bountyAmount} added successfully!`)
-      setBountyModal({ isOpen: false, issue: null })
-      setBountyAmount('')
+
+      if (result.success) {
+        // Update the issue with the new total bounty amount
+        const totalBountyAmount = organizationService.getBountyAmount(issuesModal.repo.id.toString(), bountyModal.issue.id.toString());
+        const updatedIssues = issuesModal.issues.map(issue => 
+          issue.id === bountyModal.issue.id 
+            ? { ...issue, bounty_amount: totalBountyAmount }
+            : issue
+        )
+        
+        setIssuesModal(prev => ({ ...prev, issues: updatedIssues }))
+        
+        alert(`✅ Bounty of ${bountyAmount} HLUSD added successfully!\nTotal bounty: ${formatHLUSD(totalBountyAmount)} HLUSD\nTransaction: ${result.data.transactionHash}`)
+        setBountyModal({ isOpen: false, issue: null })
+        setBountyAmount('')
+      } else {
+        throw new Error(result.error || 'Failed to add bounty')
+      }
 
     } catch (error) {
       console.error('❌ Failed to add bounty:', error)
-      alert('Failed to add bounty. Please try again.')
+      alert(`Failed to add bounty: ${error.message}`)
     } finally {
       setIsAddingBounty(false)
     }
@@ -199,6 +235,20 @@ export default function OrganizationDashboard() {
       return
     }
 
+    // Check pool balance before proceeding
+    const currentPoolBalance = parseFloat(poolBalances[issuesModal.repo.id] || '0');
+    const requestedAmount = parseFloat(bountyAmount);
+
+    if (currentPoolBalance === 0) {
+      alert('❌ Repository pool is empty!\n\nPlease donate to this repository first to create a pool for bounty funding.');
+      return;
+    }
+
+    if (currentPoolBalance < requestedAmount) {
+      alert(`❌ Insufficient pool funds!\n\nAvailable: ${formatHLUSD(currentPoolBalance)} HLUSD\nRequested: ${formatHLUSD(requestedAmount)} HLUSD\n\nPlease donate more or reduce the bounty amount.`);
+      return;
+    }
+
     if (!walletAddress) {
       try {
         await connectWallet()
@@ -220,16 +270,21 @@ export default function OrganizationDashboard() {
       )
 
       if (result.success) {
-        // Update the issue with the bounty amount
+        // Update the issue with the new total bounty amount
+        const totalBountyAmount = result.data.totalBountyAmount || organizationService.getBountyAmount(issuesModal.repo.id.toString(), bountyModal.issue.id.toString());
         const updatedIssues = issuesModal.issues.map(issue => 
           issue.id === bountyModal.issue.id 
-            ? { ...issue, bounty_amount: parseFloat(bountyAmount) }
+            ? { ...issue, bounty_amount: totalBountyAmount }
             : issue
         )
         
         setIssuesModal(prev => ({ ...prev, issues: updatedIssues }))
         
-        alert(`✅ Bounty of ${bountyAmount} HLUSD funded successfully!\nTransaction: ${result.data.transactionHash}`)
+        const message = result.data.note 
+          ? `✅ Bounty of ${bountyAmount} HLUSD funded from repository pool!\nTotal bounty: ${formatHLUSD(totalBountyAmount)} HLUSD\n\n${result.data.note}`
+          : `✅ Bounty of ${bountyAmount} HLUSD funded successfully!\nTotal bounty: ${formatHLUSD(totalBountyAmount)} HLUSD\nTransaction: ${result.data.transactionHash}`;
+        
+        alert(message);
         
         // Refresh pool balance
         await loadPoolBalance(issuesModal.repo.id)
@@ -239,9 +294,95 @@ export default function OrganizationDashboard() {
       }
     } catch (error) {
       console.error('❌ Failed to fund bounty:', error)
-      alert(`Failed to fund bounty: ${error.message}`)
+      
+      // Better error messages
+      let errorMessage = 'Failed to fund bounty';
+      if (error.message.includes('Insufficient pool funds')) {
+        errorMessage = `❌ ${error.message}\n\nPlease donate to the repository or reduce the bounty amount.`;
+      } else if (error.message.includes('pool is empty')) {
+        errorMessage = `❌ ${error.message}\n\nUse the 💰 Donate button to add funds to the repository pool.`;
+      } else {
+        errorMessage = `❌ ${error.message}`;
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsAddingBounty(false)
+    }
+  }
+
+  // Repository Registration Functions
+  const handleRegisterRepository = () => {
+    setRegisterModal({ isOpen: true })
+  }
+
+  const processRepositoryRegistration = async () => {
+    if (!repoUrl.trim()) {
+      alert('Please enter a GitHub repository URL')
+      return
+    }
+
+    if (!walletAddress) {
+      try {
+        await connectWallet()
+      } catch (error) {
+        return
+      }
+    }
+
+    setIsRegistering(true)
+
+    try {
+      // Extract repo info from GitHub URL
+      const repoMatch = repoUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/)
+      if (!repoMatch) {
+        throw new Error('Invalid GitHub repository URL. Please use format: https://github.com/owner/repo')
+      }
+
+      const [, owner, repo] = repoMatch
+      
+      console.log(`📦 Registering repository: ${owner}/${repo}`)
+
+      // Fetch repository data from GitHub API
+      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`)
+      if (!response.ok) {
+        throw new Error('Repository not found or not accessible')
+      }
+
+      const repoData = await response.json()
+
+      // Register repository with IPFS and smart contract
+      const result = await organizationService.registerRepository(repoData, walletAddress)
+
+      if (result.success) {
+        alert(`✅ Repository registered successfully!\nIPFS Hash: ${result.data.ipfsHash}\nTransaction: ${result.data.transactionHash}`)
+        
+        // Refresh repositories list
+        const response = await fetch('/api/auth/repos')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.repositories && Array.isArray(data.repositories)) {
+            const transformedRepos = data.repositories.map(repo => ({
+              ...repo,
+              activeIssues: repo.open_issues_count || 0,
+              totalPool: 0,
+              stars: repo.stargazers_count || 0
+            }))
+            
+            setRepositories(transformedRepos)
+            await loadAllPoolBalances(transformedRepos)
+          }
+        }
+        
+        // Close modal and reset
+        setRegisterModal({ isOpen: false })
+        setRepoUrl('')
+      }
+    } catch (error) {
+      console.error('❌ Repository registration failed:', error)
+      alert(`Registration failed: ${error.message}`)
+    } finally {
+      setIsRegistering(false)
     }
   }
 
@@ -362,7 +503,7 @@ export default function OrganizationDashboard() {
                   </div>
                 ) : (
                   <>
-                    {Object.values(poolBalances).reduce((total, balance) => total + parseFloat(balance || 0), 0).toFixed(4)} HLUSD
+                    {formatHLUSD(Object.values(poolBalances).reduce((sum, balance) => sum + parseFloat(balance || 0), 0))} HLUSD
                   </>
                 )}
               </div>
@@ -428,10 +569,28 @@ export default function OrganizationDashboard() {
             <TabsContent value="repositories" className="space-y-6">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-semibold">Your Repositories</h2>
-                <Button className="flex items-center gap-2">
-                  <Plus className="w-4 h-4" />
-                  Add Repository
-                </Button>
+                <div className="flex items-center gap-3">
+                  <Button 
+                    variant="outline" 
+                    className="flex items-center gap-2"
+                    onClick={() => loadAllPoolBalances(repositories)}
+                    disabled={isLoadingPools}
+                  >
+                    {isLoadingPools ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4" />
+                    )}
+                    Refresh Pools
+                  </Button>
+                  <Button 
+                    className="flex items-center gap-2"
+                    onClick={handleRegisterRepository}
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Repository
+                  </Button>
+                </div>
               </div>
 
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -467,7 +626,7 @@ export default function OrganizationDashboard() {
                             {isLoadingPools ? (
                               <Loader2 className="w-3 h-3 animate-spin" />
                             ) : (
-                              `${poolBalances[repo.id] || '0'} HLUSD`
+                              `${formatHLUSD(poolBalances[repo.id])} HLUSD`
                             )}
                           </span>
                           <span className="text-muted-foreground">⭐ {repo.stars}</span>
@@ -587,7 +746,7 @@ export default function OrganizationDashboard() {
                         </Badge>
                         {issue.bounty_amount > 0 && (
                           <Badge className="bg-green-100 text-green-800">
-                            ${issue.bounty_amount} bounty
+                            ${formatHLUSD(issue.bounty_amount)} bounty
                           </Badge>
                         )}
                       </div>
@@ -650,8 +809,8 @@ export default function OrganizationDashboard() {
             <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-4">
               <p className="text-sm text-blue-800 dark:text-blue-200">
                 <strong>Issue:</strong> {bountyModal.issue?.title}<br />
-                <strong>Current Bounty:</strong> {bountyModal.issue?.bounty_amount || 0} HLUSD<br />
-                <strong>Repository Pool:</strong> {poolBalances[issuesModal?.repo?.id] || '0'} HLUSD
+                <strong>Current Bounty:</strong> {formatHLUSD(bountyModal.issue?.bounty_amount || 0)} HLUSD<br />
+                <strong>Repository Pool:</strong> {formatHLUSD(poolBalances[issuesModal?.repo?.id])} HLUSD
               </p>
             </div>
 
@@ -672,12 +831,43 @@ export default function OrganizationDashboard() {
                 <p className="text-xs text-gray-500 mt-1">
                   Minimum: 0.01 HLUSD (will be deducted from repository pool)
                 </p>
+                {(() => {
+                  const poolBalance = parseFloat(poolBalances[issuesModal?.repo?.id] || '0');
+                  const requestedAmount = parseFloat(bountyAmount || '0');
+                  
+                  if (poolBalance === 0) {
+                    return (
+                      <p className="text-xs text-red-600 mt-1">
+                        ⚠️ Repository pool is empty. Please donate first.
+                      </p>
+                    );
+                  } else if (bountyAmount && requestedAmount > poolBalance) {
+                    return (
+                      <p className="text-xs text-red-600 mt-1">
+                        ⚠️ Insufficient pool funds. Available: {formatHLUSD(poolBalance)} HLUSD
+                      </p>
+                    );
+                  } else if (poolBalance > 0) {
+                    return (
+                      <p className="text-xs text-green-600 mt-1">
+                        ✅ Pool balance: {formatHLUSD(poolBalance)} HLUSD available
+                      </p>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
 
               <div className="flex gap-3">
                 <Button
                   onClick={processAddBountyFromPool}
-                  disabled={isAddingBounty || !bountyAmount}
+                  disabled={
+                    isAddingBounty || 
+                    !bountyAmount || 
+                    parseFloat(bountyAmount || 0) <= 0 ||
+                    parseFloat(poolBalances[issuesModal?.repo?.id] || '0') < parseFloat(bountyAmount || 0) ||
+                    parseFloat(poolBalances[issuesModal?.repo?.id] || '0') === 0
+                  }
                   className="flex-1 gap-2"
                 >
                   {isAddingBounty ? (
@@ -735,7 +925,7 @@ export default function OrganizationDashboard() {
             <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-4">
               <p className="text-sm text-blue-800 dark:text-blue-200">
                 <strong>Repository:</strong> {donationModal.repo?.name}<br />
-                <strong>Current Pool:</strong> {poolBalances[donationModal.repo?.id] || '0'} HLUSD
+                <strong>Current Pool:</strong> {formatHLUSD(poolBalances[donationModal.repo?.id])} HLUSD
               </p>
             </div>
 
@@ -792,6 +982,71 @@ export default function OrganizationDashboard() {
               <div className="text-xs text-gray-500 dark:text-gray-400">
                 <p>💰 Donations help fund bounties</p>
                 <p>🚀 Support open source development</p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Repository Registration Modal */}
+      {registerModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            className="bg-background rounded-lg p-6 w-full max-w-md"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Register Repository</h3>
+              <p className="text-sm text-muted-foreground">
+                Enter a GitHub repository URL to register it with HackAura and store metadata on IPFS.
+              </p>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">GitHub Repository URL</label>
+                <input
+                  type="url"
+                  value={repoUrl}
+                  onChange={(e) => setRepoUrl(e.target.value)}
+                  placeholder="https://github.com/owner/repository"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  disabled={isRegistering}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Example: https://github.com/facebook/react
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={processRepositoryRegistration}
+                  disabled={isRegistering || !repoUrl.trim()}
+                  className="flex-1 gap-2"
+                >
+                  {isRegistering ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Registering...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      Register Repository
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setRegisterModal({ isOpen: false })
+                    setRepoUrl('')
+                  }}
+                  disabled={isRegistering}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
               </div>
             </div>
           </motion.div>

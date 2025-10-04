@@ -4,6 +4,7 @@ import { Button } from "../components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { Trophy, Medal, Award, DollarSign, CheckCircle, GitBranch, Heart, Loader2 } from "lucide-react"
 import { motion } from "framer-motion"
+import Web3 from 'web3'
 
 const topDevelopers = [
   {
@@ -172,6 +173,12 @@ const getRankColor = (index) => {
 }
 
 export default function LeaderboardPage() {
+  // Helper function to format currency amounts cleanly
+  const formatCurrency = (amount) => {
+    const num = parseFloat(amount || 0);
+    return num === 0 ? '0' : (num % 1 === 0 ? num.toString() : num.toFixed(2).replace(/\.?0+$/, ''));
+  };
+
   const [donationModal, setDonationModal] = useState({ isOpen: false, organization: null })
   const [donationAmount, setDonationAmount] = useState('')
   const [isDonating, setIsDonating] = useState(false)
@@ -197,6 +204,9 @@ export default function LeaderboardPage() {
         return
       }
 
+      // Ensure user is on HelaChain testnet
+      await ensureHelaChainNetwork()
+
       // Request account access
       await window.ethereum.request({ method: 'eth_requestAccounts' })
 
@@ -209,20 +219,24 @@ export default function LeaderboardPage() {
         return
       }
 
-      // Convert donation amount to Wei (HLUSD to Wei conversion)
-      const amountInWei = window.ethereum.utils?.toWei(donationAmount, 'ether') || 
-                         (parseFloat(donationAmount) * Math.pow(10, 18)).toString(16)
+      // Convert donation amount to Wei (HLUSD uses 18 decimals)
+      const web3 = new Web3(window.ethereum)
+      const amountInWei = web3.utils.toWei(donationAmount, 'ether')
 
-      // Use the organization's wallet address
-      const recipientAddress = donationModal.organization.walletAddress
+      // Use the organization's wallet address or fallback to a default address
+      const recipientAddress = donationModal.organization.walletAddress || 
+                              import.meta.env.VITE_BOUNTY_ESCROW_ADDRESS
+
+      // Get current gas price for legacy pricing
+      const gasPrice = await web3.eth.getGasPrice()
 
       // Prepare transaction
       const transactionParameters = {
         to: recipientAddress,
         from: fromAccount,
-        value: '0x' + parseInt(amountInWei).toString(16),
+        value: web3.utils.toHex(amountInWei),
         gas: '0x5208', // 21000 gas limit for simple transfers
-        gasPrice: '0x9184e72a000', // 10 gwei
+        gasPrice: web3.utils.toHex(gasPrice) // Use legacy gas pricing for HelaChain
       }
 
       // Send transaction
@@ -237,7 +251,7 @@ export default function LeaderboardPage() {
       setOrganizations(prevOrgs => 
         prevOrgs.map(org => 
           org.user_id === donationModal.organization.user_id 
-            ? { ...org, total_pool: org.total_pool + parseFloat(donationAmount) * 1 } // HLUSD to USD equivalent
+            ? { ...org, total_pool: org.total_pool + parseFloat(donationAmount) }
             : org
         )
       )
@@ -258,6 +272,42 @@ export default function LeaderboardPage() {
       }
     } finally {
       setIsDonating(false)
+    }
+  }
+
+  // Ensure user is connected to HelaChain testnet
+  const ensureHelaChainNetwork = async () => {
+    const chainId = await window.ethereum.request({ method: 'eth_chainId' })
+    const helaChainId = '0xa2d08' // 666888 in hex
+    
+    if (chainId !== helaChainId) {
+      try {
+        // Try to switch to HelaChain testnet
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: helaChainId }],
+        })
+      } catch (switchError) {
+        // If the network doesn't exist, add it
+        if (switchError.code === 4902) {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: helaChainId,
+              chainName: 'Hela Official Runtime Testnet',
+              nativeCurrency: {
+                name: 'HLUSD',
+                symbol: 'HLUSD',
+                decimals: 18
+              },
+              rpcUrls: ['https://testnet-rpc.helachain.com'],
+              blockExplorerUrls: ['https://testnet-explorer.helachain.com']
+            }]
+          })
+        } else {
+          throw switchError
+        }
+      }
     }
   }
   return (
@@ -399,7 +449,7 @@ export default function LeaderboardPage() {
                             <div className="flex items-center gap-6 mt-2 text-muted-foreground">
                               <div className="flex items-center gap-1">
                                 <DollarSign className="w-4 h-4 text-green-600" />
-                                <span className="font-medium">${org.total_pool.toLocaleString()}</span>
+                                <span className="font-medium">${formatCurrency(org.total_pool)}</span>
                                 <span className="text-sm">total pool</span>
                               </div>
                               <div className="flex items-center gap-1">
@@ -490,7 +540,7 @@ export default function LeaderboardPage() {
                 <p className="text-sm text-blue-800 dark:text-blue-200">
                   <strong>Organization:</strong> {donationModal.organization?.name}<br />
                   <strong>Description:</strong> {donationModal.organization?.description}<br />
-                  <strong>Current Pool:</strong> ${donationModal.organization?.total_pool?.toLocaleString()}<br />
+                  <strong>Current Pool:</strong> ${formatCurrency(donationModal.organization?.total_pool)}<br />
                   <strong>Your Donation:</strong> {donationAmount ? `${donationAmount} HLUSD` : '0 HLUSD'}
                 </p>
               </div>
