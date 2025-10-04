@@ -237,65 +237,6 @@ const AuthPage = () => {
 
               {/* Debug and Management Section */}
               <div className="mt-8 space-y-4">
-                {/* Debug Toggle */}
-                <button
-                  onClick={() => setShowDebug(!showDebug)}
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
-                >
-                  <Eye className="w-4 h-4" />
-                  {showDebug ? 'Hide' : 'Show'} Storage Debug
-                </button>
-
-                {/* Debug Panel */}
-                <AnimatePresence>
-                  {showDebug && (
-                    <motion.div
-                      className="p-4 bg-muted/50 border border-border rounded-lg text-sm"
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <h4 className="font-medium mb-2">Storage Contents:</h4>
-                      <div className="space-y-1 font-mono text-xs">
-                        <div>
-                          <span className="text-muted-foreground">MetaMask Account:</span>{' '}
-                          <span className="text-foreground">
-                            {localStorage.getItem('metamask_account') || 'Not stored'}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">GitHub Token:</span>{' '}
-                          <span className="text-foreground">
-                            {localStorage.getItem('github_token') ? 'Stored ✅' : 'Not stored ❌'}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Auth Status:</span>{' '}
-                          <span className="text-foreground">
-                            {isAuthenticated ? 'Authenticated ✅' : 'Not authenticated ❌'}
-                          </span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Signout Button */}
-                {(metamaskConnected || githubConnected) && (
-                  <motion.button
-                    onClick={() => {
-                      logout()
-                      setShowDebug(false)
-                    }}
-                    className="w-full px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40 text-red-600 dark:text-red-400 rounded-lg font-medium transition-colors duration-150 flex items-center justify-center gap-2"
-                    whileHover={{ scale: 1.02, transition: { duration: 0.15 } }}
-                    whileTap={{ scale: 0.98, transition: { duration: 0.1 } }}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Clear All Storage & Sign Out
-                  </motion.button>
-                )}
               </div>
             </motion.div>
           )}
