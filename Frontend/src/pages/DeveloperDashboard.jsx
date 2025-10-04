@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button"
 import { Badge } from "../components/ui/badge"
@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { DollarSign, CheckCircle, Clock, ExternalLink, GitBranch, TrendingUp, Sparkles, Store } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
-import { AuthContext } from "../context/AuthContext"
+import { useAuth } from "../context/AuthContext"
 import githubOAuth from "../services/githubOAuth"
 
 const mockRepositories = [
@@ -81,7 +81,7 @@ const mockRepositories = [
 
 export default function DeveloperDashboard() {
   const navigate = useNavigate()
-  const { user } = useContext(AuthContext)
+  const { user } = useAuth()
   const [repositories, setRepositories] = useState([])
   const [bounties, setBounties] = useState([])
   const [completedBounties, setCompletedBounties] = useState([])

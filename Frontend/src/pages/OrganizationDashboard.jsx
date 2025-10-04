@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button"
 import { Badge } from "../components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
-import { Building2, DollarSign, GitBranch, Users, Plus, ExternalLink, Clock, CheckCircle, Loader2, AlertCircle, Star } from "lucide-react"
+import { Building2, DollarSign, GitBranch, Users, Plus, ExternalLink, Clock, CheckCircle, Loader2, AlertCircle, Star, Heart } from "lucide-react"
 import { motion } from "framer-motion"
 
 export default function OrganizationDashboard() {
@@ -11,6 +11,93 @@ export default function OrganizationDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selectedRepo, setSelectedRepo] = useState(null)
+  const [donationModal, setDonationModal] = useState({ isOpen: false, repo: null })
+  const [donationAmount, setDonationAmount] = useState('')
+  const [isDonating, setIsDonating] = useState(false)
+
+  // Donation function
+  const handleDonate = async (repo) => {
+    setDonationModal({ isOpen: true, repo })
+  }
+
+  const processDonation = async () => {
+    if (!donationAmount || parseFloat(donationAmount) <= 0) {
+      alert('Please enter a valid donation amount')
+      return
+    }
+
+    setIsDonating(true)
+
+    try {
+      // Check if MetaMask is installed
+      if (typeof window.ethereum === 'undefined') {
+        alert('MetaMask is not installed. Please install MetaMask to make donations.')
+        return
+      }
+
+      // Request account access
+      await window.ethereum.request({ method: 'eth_requestAccounts' })
+
+      // Get the user's account
+      const accounts = await window.ethereum.request({ method: 'eth_accounts' })
+      const fromAccount = accounts[0]
+
+      if (!fromAccount) {
+        alert('No account found. Please connect your MetaMask wallet.')
+        return
+      }
+
+      // Convert donation amount to Wei (ETH to Wei conversion)
+      const amountInWei = window.ethereum.utils?.toWei(donationAmount, 'ether') || 
+                         (parseFloat(donationAmount) * Math.pow(10, 18)).toString(16)
+
+      // Dummy recipient address (in real app, this would be the repo owner's wallet)
+      const recipientAddress = '0x742d35Cc6635C0532925a3b8D0b17A30C6638bF1' // Example address
+
+      // Prepare transaction
+      const transactionParameters = {
+        to: recipientAddress,
+        from: fromAccount,
+        value: '0x' + parseInt(amountInWei).toString(16),
+        gas: '0x5208', // 21000 gas limit for simple transfers
+        gasPrice: '0x9184e72a000', // 10 gwei
+      }
+
+      // Send transaction
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [transactionParameters],
+      })
+
+      console.log('✅ Donation transaction sent:', txHash)
+      
+      // Update the repository's bounty pool locally
+      setRepositories(prevRepos => 
+        prevRepos.map(r => 
+          r.id === donationModal.repo.id 
+            ? { ...r, bountyPool: r.bountyPool + parseFloat(donationAmount) * 1000 } // Convert ETH to USD equivalent
+            : r
+        )
+      )
+
+      alert(`🎉 Donation successful! Transaction hash: ${txHash}`)
+      setDonationModal({ isOpen: false, repo: null })
+      setDonationAmount('')
+
+    } catch (error) {
+      console.error('❌ Donation failed:', error)
+      
+      if (error.code === 4001) {
+        alert('Transaction was cancelled by user.')
+      } else if (error.code === -32603) {
+        alert('Transaction failed. Please check your wallet balance and try again.')
+      } else {
+        alert(`Donation failed: ${error.message}`)
+      }
+    } finally {
+      setIsDonating(false)
+    }
+  }
 
   // Fetch repositories from GitHub API
   useEffect(() => {
@@ -227,8 +314,13 @@ export default function OrganizationDashboard() {
                         </div>
 
                         <div className="flex gap-2">
-                          <Button size="sm" className="flex-1">
-                            Add Bounty
+                          <Button 
+                            size="sm" 
+                            className="flex-1 gap-1" 
+                            onClick={() => handleDonate(repo)}
+                          >
+                            <Heart className="w-3 h-3" />
+                            Donate
                           </Button>
                           <Button variant="outline" size="sm" className="flex-1">
                             View Issues
@@ -263,6 +355,90 @@ export default function OrganizationDashboard() {
         </>
         )}
       </div>
+
+      {/* Donation Modal */}
+      {donationModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <Heart className="w-6 h-6 text-red-500" />
+              <h3 className="text-lg font-semibold">Donate to {donationModal.repo?.name}</h3>
+            </div>
+            
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+              Support this repository by donating cryptocurrency. Your donation will help fund development and improvements.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Donation Amount (ETH)
+                </label>
+                <input
+                  type="number"
+                  step="0.001"
+                  min="0.001"
+                  placeholder="0.01"
+                  value={donationAmount}
+                  onChange={(e) => setDonationAmount(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Minimum: 0.001 ETH (~$2.50 USD)
+                </p>
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  <strong>Repository:</strong> {donationModal.repo?.name}<br />
+                  <strong>Current Pool:</strong> ${donationModal.repo?.bountyPool?.toLocaleString()}<br />
+                  <strong>Your Donation:</strong> {donationAmount ? `${donationAmount} ETH` : '0 ETH'}
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={processDonation}
+                  disabled={isDonating || !donationAmount}
+                  className="flex-1 gap-2"
+                >
+                  {isDonating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Heart className="w-4 h-4" />
+                      Donate Now
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setDonationModal({ isOpen: false, repo: null })
+                    setDonationAmount('')
+                  }}
+                  disabled={isDonating}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                <p>⚡ Powered by MetaMask & Ethereum</p>
+                <p>🔒 Secure blockchain transaction</p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   )
 }
