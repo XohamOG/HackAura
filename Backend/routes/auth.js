@@ -71,4 +71,46 @@ router.get('/repos', async (req, res) => {
   }
 });
 
+router.get('/repos/:owner/:repo/issues', async (req, res) => {
+  const token = process.env.GITHUB_BEARER_TOKEN || req.session.githubToken;
+  if (!token) return res.status(401).json({ error: 'Not authenticated with GitHub' });
+  
+  const { owner, repo } = req.params;
+  const { state = 'open' } = req.query; // Default to open issues
+  
+  try {
+    console.log(`🔄 Fetching issues for ${owner}/${repo} with state: ${state}`);
+    const issuesRes = await axios.get(
+      `https://api.github.com/repos/${owner}/${repo}/issues`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { state, per_page: 100 }
+      }
+    );
+    
+    // Transform GitHub issues to our format with bounty support
+    const transformedIssues = issuesRes.data.map(issue => ({
+      id: issue.id,
+      number: issue.number,
+      title: issue.title,
+      description: issue.body || 'No description provided',
+      state: issue.state,
+      labels: issue.labels.map(label => label.name),
+      created_at: issue.created_at,
+      html_url: issue.html_url,
+      bounty_amount: 0, // Initialize bounty amount (in real app, would come from database)
+      user: {
+        login: issue.user.login,
+        avatar_url: issue.user.avatar_url
+      }
+    }));
+    
+    console.log(`✅ Successfully fetched ${transformedIssues.length} issues for ${owner}/${repo}`);
+    res.json(transformedIssues);
+  } catch (err) {
+    console.error(`❌ Failed to fetch issues for ${owner}/${repo}:`, err.message);
+    res.status(400).json({ error: `Failed to fetch issues: ${err.message}` });
+  }
+});
+
 module.exports = router;

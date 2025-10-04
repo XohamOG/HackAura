@@ -15,54 +15,32 @@ export default function OrganizationDashboard() {
   const [bountyModal, setBountyModal] = useState({ isOpen: false, issue: null })
   const [bountyAmount, setBountyAmount] = useState('')
   const [isAddingBounty, setIsAddingBounty] = useState(false)
+  const [issuesLoading, setIssuesLoading] = useState(false)
 
-  // Mock issues data (in real app, this would come from GitHub API)
-  const mockIssues = [
-    {
-      id: 1,
-      title: "Add dark mode support",
-      description: "Implement dark mode toggle with theme persistence across the application",
-      state: "open",
-      labels: ["enhancement", "ui"],
-      created_at: "2024-01-15",
-      bounty_amount: 0,
-      html_url: "https://github.com/example/repo/issues/1"
-    },
-    {
-      id: 2,
-      title: "Fix responsive layout bug",
-      description: "Mobile layout breaks on small screens, need to fix CSS grid issues",
-      state: "open",
-      labels: ["bug", "css"],
-      created_at: "2024-01-10",
-      bounty_amount: 0,
-      html_url: "https://github.com/example/repo/issues/2"
-    },
-    {
-      id: 3,
-      title: "Add accessibility features",
-      description: "Implement ARIA labels and keyboard navigation for better accessibility",
-      state: "open",
-      labels: ["accessibility", "enhancement"],
-      created_at: "2024-01-08",
-      bounty_amount: 0,
-      html_url: "https://github.com/example/repo/issues/3"
-    },
-    {
-      id: 4,
-      title: "Update documentation",
-      description: "API documentation needs to be updated with latest changes",
-      state: "open",
-      labels: ["documentation"],
-      created_at: "2024-01-05",
-      bounty_amount: 0,
-      html_url: "https://github.com/example/repo/issues/4"
+  // Function to handle viewing issues - now fetches from GitHub API
+  const handleViewIssues = async (repo) => {
+    setIssuesLoading(true)
+    setIssuesModal({ isOpen: true, repo, issues: [] })
+    
+    try {
+      console.log(`🔄 Fetching issues for repository: ${repo.full_name}`)
+      const response = await fetch(`/api/auth/repos/${repo.owner}/${repo.name}/issues`)
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch issues: ${response.status}`)
+      }
+      
+      const issues = await response.json()
+      console.log(`✅ Successfully fetched ${issues.length} issues for ${repo.full_name}`)
+      
+      setIssuesModal(prev => ({ ...prev, issues }))
+    } catch (error) {
+      console.error('❌ Failed to fetch issues:', error)
+      setError(`Failed to load issues: ${error.message}`)
+      // Keep modal open but show error state
+    } finally {
+      setIssuesLoading(false)
     }
-  ]
-
-  // Function to handle viewing issues
-  const handleViewIssues = (repo) => {
-    setIssuesModal({ isOpen: true, repo, issues: mockIssues })
   }
 
   // Function to handle adding bounty to an issue
@@ -125,6 +103,8 @@ export default function OrganizationDashboard() {
         const transformedRepos = repos.map(repo => ({
           id: repo.id.toString(),
           name: repo.name,
+          owner: repo.owner.login,
+          full_name: repo.full_name,
           description: repo.description || 'No description available',
           bountyPool: Math.floor(Math.random() * 5000) + 1000,
           activeIssues: repo.open_issues_count || 0,
@@ -372,7 +352,7 @@ export default function OrganizationDashboard() {
                   Issues for {issuesModal.repo?.name}
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  {issuesModal.issues.length} open issues
+                  {issuesLoading ? 'Loading...' : `${issuesModal.issues.length} open issues`}
                 </p>
               </div>
               <Button
@@ -384,7 +364,18 @@ export default function OrganizationDashboard() {
             </div>
             
             <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-              {issuesModal.issues.map((issue, index) => (
+              {issuesLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin mr-3" />
+                  <span>Loading issues from GitHub...</span>
+                </div>
+              ) : issuesModal.issues.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No open issues found for this repository</p>
+                </div>
+              ) : (
+                issuesModal.issues.map((issue, index) => (
                 <motion.div
                   key={issue.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -437,7 +428,8 @@ export default function OrganizationDashboard() {
                     </div>
                   </div>
                 </motion.div>
-              ))}
+              ))
+              )}
             </div>
           </motion.div>
         </div>

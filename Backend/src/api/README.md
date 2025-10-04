@@ -9,8 +9,8 @@ http://localhost:4000/api/contracts
 ```
 
 ## Smart Contracts
-- **BountyEscrow**: `0xB8C69FE353d8b8aB113Bf501506D2Fa47544e633`
-- **RepoRegistry**: `0x0eE8c1e1f30A1502474bF530ef15DbEDFcBA0DB0`
+- **BountyEscrow**: `0xd9145CCE52D386f254917e481eB44e9943F39138`
+- **RepoRegistry**: `0xd8b934580fcE35a11B58C6D73aDeE468a2833fa8`
 
 ## Transaction Modes
 - **MetaMask Mode** (Default): API returns transaction data for user signing
@@ -50,7 +50,7 @@ POST /api/contracts/donate
   "success": true,
   "message": "Transaction data prepared for MetaMask signing",
   "data": {
-    "to": "0xB8C69FE353d8b8aB113Bf501506D2Fa47544e633",
+    "to": "0xd9145CCE52D386f254917e481eB44e9943F39138",
     "data": "0x...", // encoded function call
     "value": "500000000000000000", // 0.5 MATIC in wei
     "from": "0x...", // user's address
@@ -196,7 +196,7 @@ POST /api/contracts/stake
   "success": true,
   "message": "Transaction data prepared for MetaMask signing",
   "data": {
-    "to": "0x0eE8c1e1f30A1502474bF530ef15DbEDFcBA0DB0",
+    "to": "0xd8b934580fcE35a11B58C6D73aDeE468a2833fa8",
     "data": "0x...", // encoded function call
     "value": "100000000000000000", // 0.1 MATIC in wei
     "from": "0x...", // user's address
@@ -562,8 +562,8 @@ POLYGON_RPC_URL=https://polygon-rpc.com
 POLYGON_TESTNET_RPC_URL=https://rpc-mumbai.maticvigil.com
 
 # Contract Addresses (DEPLOYED)
-BOUNTY_ESCROW_ADDRESS=0xB8C69FE353d8b8aB113Bf501506D2Fa47544e633
-REPO_REGISTRY_ADDRESS=0x0eE8c1e1f30A1502474bF530ef15DbEDFcBA0DB0
+BOUNTY_ESCROW_ADDRESS=0xd9145CCE52D386f254917e481eB44e9943F39138
+REPO_REGISTRY_ADDRESS=0xd8b934580fcE35a11B58C6D73aDeE468a2833fa8
 
 # Transaction Mode
 TRANSACTION_MODE=metamask
@@ -581,8 +581,8 @@ PRIVATE_KEY=PLACEHOLDER_PRIVATE_KEY
   "network": "polygon",
   "mode": "read-only", // or "read-write" if private key set
   "contracts": {
-    "bountyEscrow": "0xB8C69FE353d8b8aB113Bf501506D2Fa47544e633",
-    "repoRegistry": "0x0eE8c1e1f30A1502474bF530ef15DbEDFcBA0DB0"
+    "bountyEscrow": "0xd9145CCE52D386f254917e481eB44e9943F39138",
+    "repoRegistry": "0xd8b934580fcE35a11B58C6D73aDeE468a2833fa8"
   },
   "setup": {
     "privateKey": "⚠️ Not set (read-only mode)",

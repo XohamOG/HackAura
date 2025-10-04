@@ -4,7 +4,7 @@
 This folder contains all smart contract integration helper functions and utilities for the Git Hunters platform.
 
 ## Contract Addresses (Polygon Network)
-- **BountyEscrow**: `0xCc47A9e11De3aA189cD801fD54054493C5e11a68`
+- **BountyEscrow**: `0xd9145CCE52D386f254917e481eB44e9943F39138`
 - **RepoRegistry**: `[TO_BE_DEPLOYED]`
 
 ## Files Structure
@@ -20,7 +20,7 @@ This folder contains all smart contract integration helper functions and utiliti
 POLYGON_RPC_URL=https://polygon-rpc.com
 POLYGON_TESTNET_RPC_URL=https://rpc-mumbai.maticvigil.com
 PRIVATE_KEY=your_private_key_here
-BOUNTY_ESCROW_ADDRESS=0xCc47A9e11De3aA189cD801fD54054493C5e11a68
+BOUNTY_ESCROW_ADDRESS=0xd9145CCE52D386f254917e481eB44e9943F39138
 REPO_REGISTRY_ADDRESS=your_repo_registry_address_here
 NETWORK=polygon (or polygon-testnet for testing)
 ```

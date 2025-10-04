@@ -29,11 +29,11 @@ const contractConfig = {
   // Contract Addresses
   contracts: {
     bountyEscrow: {
-      address: process.env.BOUNTY_ESCROW_ADDRESS || '0xCc47A9e11De3aA189cD801fD54054493C5e11a68',
+      address: process.env.BOUNTY_ESCROW_ADDRESS || '0xd9145CCE52D386f254917e481eB44e9943F39138',
       network: process.env.NETWORK || 'polygon'
     },
     repoRegistry: {
-      address: process.env.REPO_REGISTRY_ADDRESS || 'PLACEHOLDER_REPO_REGISTRY_ADDRESS',
+      address: process.env.REPO_REGISTRY_ADDRESS || '0xd8b934580fcE35a11B58C6D73aDeE468a2833fa8',
       network: process.env.NETWORK || 'polygon'
     }
   },
