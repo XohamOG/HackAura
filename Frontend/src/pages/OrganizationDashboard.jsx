@@ -5,6 +5,7 @@ import { Badge } from "../components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { Building2, DollarSign, GitBranch, Users, Plus, ExternalLink, Clock, CheckCircle, Loader2, AlertCircle, Star, FileText, Tag } from "lucide-react"
 import { motion } from "framer-motion"
+import organizationService from "../services/organizationService"
 
 export default function OrganizationDashboard() {
   const [repositories, setRepositories] = useState([])
@@ -16,6 +17,14 @@ export default function OrganizationDashboard() {
   const [bountyAmount, setBountyAmount] = useState('')
   const [isAddingBounty, setIsAddingBounty] = useState(false)
   const [issuesLoading, setIssuesLoading] = useState(false)
+  
+  // Smart Contract Integration States
+  const [donationModal, setDonationModal] = useState({ isOpen: false, repo: null })
+  const [donationAmount, setDonationAmount] = useState('')
+  const [isDonating, setIsDonating] = useState(false)
+  const [walletAddress, setWalletAddress] = useState(null)
+  const [poolBalances, setPoolBalances] = useState({}) // Store pool balances for each repo
+  const [isLoadingPools, setIsLoadingPools] = useState(false)
 
   // Function to handle viewing issues - now fetches from GitHub API
   const handleViewIssues = async (repo) => {
@@ -82,6 +91,160 @@ export default function OrganizationDashboard() {
     }
   }
 
+  // ================================
+  // SMART CONTRACT INTEGRATION FUNCTIONS
+  // ================================
+
+  // Connect wallet and get address
+  const connectWallet = async () => {
+    try {
+      const address = await organizationService.getWalletAddress()
+      setWalletAddress(address)
+      console.log('✅ Wallet connected:', address)
+      return address
+    } catch (error) {
+      console.error('❌ Wallet connection failed:', error)
+      alert('Failed to connect wallet. Please make sure MetaMask is installed and connected to HelaChain testnet.')
+      throw error
+    }
+  }
+
+  // Handle donation to repository pool
+  const handleDonation = (repo) => {
+    setDonationModal({ isOpen: true, repo })
+  }
+
+  // Process donation to repository
+  const processDonation = async () => {
+    if (!donationAmount || parseFloat(donationAmount) <= 0) {
+      alert('Please enter a valid donation amount')
+      return
+    }
+
+    if (!walletAddress) {
+      try {
+        await connectWallet()
+      } catch (error) {
+        return
+      }
+    }
+
+    setIsDonating(true)
+
+    try {
+      console.log(`💰 Donating ${donationAmount} HLUSD to repository ${donationModal.repo.id}`)
+
+      const result = await organizationService.donateToRepository(
+        donationModal.repo.id,
+        donationAmount,
+        walletAddress
+      )
+
+      if (result.success) {
+        alert(`✅ Successfully donated ${donationAmount} HLUSD to ${donationModal.repo.name}!\nTransaction: ${result.data.transactionHash}`)
+        
+        // Refresh pool balance for this repo
+        await loadPoolBalance(donationModal.repo.id)
+        
+        // Close modal and reset
+        setDonationModal({ isOpen: false, repo: null })
+        setDonationAmount('')
+      }
+    } catch (error) {
+      console.error('❌ Donation failed:', error)
+      alert(`Failed to donate: ${error.message}`)
+    } finally {
+      setIsDonating(false)
+    }
+  }
+
+  // Load pool balance for a specific repository
+  const loadPoolBalance = async (repoId) => {
+    try {
+      const result = await organizationService.getRepositoryPool(repoId)
+      if (result.success) {
+        const balance = organizationService.weiToHLUSD(result.data.poolBalanceWei)
+        setPoolBalances(prev => ({
+          ...prev,
+          [repoId]: balance
+        }))
+      }
+    } catch (error) {
+      console.error(`❌ Failed to load pool balance for repo ${repoId}:`, error)
+      // Set to 0 if failed to load
+      setPoolBalances(prev => ({
+        ...prev,
+        [repoId]: '0'
+      }))
+    }
+  }
+
+  // Load pool balances for all repositories
+  const loadAllPoolBalances = async (repos) => {
+    setIsLoadingPools(true)
+    try {
+      const balancePromises = repos.map(repo => loadPoolBalance(repo.id))
+      await Promise.all(balancePromises)
+    } catch (error) {
+      console.error('❌ Failed to load pool balances:', error)
+    } finally {
+      setIsLoadingPools(false)
+    }
+  }
+
+  // Process bounty funding from pool (updated to use smart contract)
+  const processAddBountyFromPool = async () => {
+    if (!bountyAmount || parseFloat(bountyAmount) <= 0) {
+      alert('Please enter a valid bounty amount')
+      return
+    }
+
+    if (!walletAddress) {
+      try {
+        await connectWallet()
+      } catch (error) {
+        return
+      }
+    }
+
+    setIsAddingBounty(true)
+
+    try {
+      console.log(`🎯 Funding bounty from pool: ${bountyAmount} HLUSD for issue ${bountyModal.issue.id}`)
+
+      const result = await organizationService.fundBountyFromPool(
+        issuesModal.repo.id,
+        bountyModal.issue.id,
+        bountyAmount,
+        walletAddress
+      )
+
+      if (result.success) {
+        // Update the issue with the bounty amount
+        const updatedIssues = issuesModal.issues.map(issue => 
+          issue.id === bountyModal.issue.id 
+            ? { ...issue, bounty_amount: parseFloat(bountyAmount) }
+            : issue
+        )
+        
+        setIssuesModal(prev => ({ ...prev, issues: updatedIssues }))
+        
+        alert(`✅ Bounty of ${bountyAmount} HLUSD funded successfully!\nTransaction: ${result.data.transactionHash}`)
+        
+        // Refresh pool balance
+        await loadPoolBalance(issuesModal.repo.id)
+        
+        setBountyModal({ isOpen: false, issue: null })
+        setBountyAmount('')
+      }
+    } catch (error) {
+      console.error('❌ Failed to fund bounty:', error)
+      alert(`Failed to fund bounty: ${error.message}`)
+    } finally {
+      setIsAddingBounty(false)
+    }
+  }
+
   // Fetch repositories from GitHub API
   useEffect(() => {
     const fetchRepositories = async () => {
@@ -121,6 +284,16 @@ export default function OrganizationDashboard() {
         
         setRepositories(transformedRepos)
         setSelectedRepo(transformedRepos[0] || null)
+        
+        // Load pool balances for all repositories
+        await loadAllPoolBalances(transformedRepos)
+        
+        // Try to connect wallet (non-blocking)
+        try {
+          await connectWallet()
+        } catch (error) {
+          console.log('⚠️ Wallet not connected yet, user can connect manually')
+        }
       } catch (err) {
         console.error('❌ Error fetching repositories:', err)
         setError(err.message)
@@ -182,9 +355,18 @@ export default function OrganizationDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                ${repositories.reduce((total, repo) => total + repo.bountyPool, 0).toLocaleString()}
+                {isLoadingPools ? (
+                  <div className="flex items-center">
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    Loading...
+                  </div>
+                ) : (
+                  <>
+                    {Object.values(poolBalances).reduce((total, balance) => total + parseFloat(balance || 0), 0).toFixed(4)} HLUSD
+                  </>
+                )}
               </div>
-              <p className="text-xs text-muted-foreground">Available for bounties</p>
+              <p className="text-xs text-muted-foreground">HelaChain pool balance</p>
             </CardContent>
           </Card>
 
@@ -282,7 +464,11 @@ export default function OrganizationDashboard() {
                         <div className="flex items-center justify-between text-sm">
                           <span className="flex items-center gap-1">
                             <DollarSign className="w-4 h-4 text-green-600" />
-                            ${repo.bountyPool}
+                            {isLoadingPools ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              `${poolBalances[repo.id] || '0'} HLUSD`
+                            )}
                           </span>
                           <span className="text-muted-foreground">⭐ {repo.stars}</span>
                         </div>
@@ -299,6 +485,15 @@ export default function OrganizationDashboard() {
                         </div>
 
                         <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => handleDonation(repo)}
+                          >
+                            <DollarSign className="w-4 h-4 mr-1" />
+                            Donate
+                          </Button>
                           <Button 
                             size="sm" 
                             className="flex-1"
@@ -455,32 +650,33 @@ export default function OrganizationDashboard() {
             <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-4">
               <p className="text-sm text-blue-800 dark:text-blue-200">
                 <strong>Issue:</strong> {bountyModal.issue?.title}<br />
-                <strong>Current Bounty:</strong> ${bountyModal.issue?.bounty_amount || 0}
+                <strong>Current Bounty:</strong> {bountyModal.issue?.bounty_amount || 0} HLUSD<br />
+                <strong>Repository Pool:</strong> {poolBalances[issuesModal?.repo?.id] || '0'} HLUSD
               </p>
             </div>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Bounty Amount (USD)
+                  Bounty Amount (HLUSD)
                 </label>
                 <input
                   type="number"
-                  step="10"
-                  min="10"
-                  placeholder="100"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="1.0"
                   value={bountyAmount}
                   onChange={(e) => setBountyAmount(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Minimum: $10 USD
+                  Minimum: 0.01 HLUSD (will be deducted from repository pool)
                 </p>
               </div>
 
               <div className="flex gap-3">
                 <Button
-                  onClick={processAddBounty}
+                  onClick={processAddBountyFromPool}
                   disabled={isAddingBounty || !bountyAmount}
                   className="flex-1 gap-2"
                 >
@@ -492,7 +688,7 @@ export default function OrganizationDashboard() {
                   ) : (
                     <>
                       <DollarSign className="w-4 h-4" />
-                      Add Bounty
+                      Add Bounty from Pool
                     </>
                   )}
                 </Button>
@@ -510,8 +706,92 @@ export default function OrganizationDashboard() {
               </div>
 
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                <p>💰 Bounties help attract skilled developers</p>
-                <p>🚀 Higher bounties get faster results</p>
+                <p>💰 Bounties are funded from repository pool</p>
+                <p>🚀 Higher bounties attract more developers</p>
+                <p>⚡ Uses HLUSD on HelaChain testnet</p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Donation Modal */}
+      {donationModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <DollarSign className="w-6 h-6 text-green-600" />
+              <h3 className="text-lg font-semibold">Donate to Repository</h3>
+            </div>
+            
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+              Support this repository by donating HLUSD to its pool:
+            </p>
+
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-4">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                <strong>Repository:</strong> {donationModal.repo?.name}<br />
+                <strong>Current Pool:</strong> {poolBalances[donationModal.repo?.id] || '0'} HLUSD
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Donation Amount (HLUSD)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="1.0"
+                  value={donationAmount}
+                  onChange={(e) => setDonationAmount(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Minimum: 0.01 HLUSD
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={processDonation}
+                  disabled={isDonating || !donationAmount}
+                  className="flex-1 gap-2"
+                >
+                  {isDonating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Donating...
+                    </>
+                  ) : (
+                    <>
+                      <DollarSign className="w-4 h-4" />
+                      Donate HLUSD
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setDonationModal({ isOpen: false, repo: null })
+                    setDonationAmount('')
+                  }}
+                  disabled={isDonating}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                <p>💰 Donations help fund bounties</p>
+                <p>🚀 Support open source development</p>
               </div>
             </div>
           </motion.div>

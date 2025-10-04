@@ -51,6 +51,10 @@ app.use('/api/contracts', contractRoutes);
 const authRoutes = require('../routes/auth');
 app.use('/api/auth', authRoutes);
 
+// Organization Dashboard routes
+const organizationRoutes = require('./api/organizationRoutes');
+app.use('/api/organization', organizationRoutes);
+
 // Blockchain routes (legacy - for compatibility)
 try {
   const blockchainRoutes = require('./blockchain/routes');
@@ -70,7 +74,8 @@ app.use('*', (req, res) => {
       'GET /health',
       'GET /api/contracts/*',
       'GET /api/blockchain/*',
-      'GET /api/auth/*'
+      'GET /api/auth/*',
+      'POST /api/organization/*'
     ]
   });
 });
