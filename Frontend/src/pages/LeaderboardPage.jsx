@@ -209,7 +209,7 @@ export default function LeaderboardPage() {
         return
       }
 
-      // Convert donation amount to Wei (ETH to Wei conversion)
+      // Convert donation amount to Wei (HLUSD to Wei conversion)
       const amountInWei = window.ethereum.utils?.toWei(donationAmount, 'ether') || 
                          (parseFloat(donationAmount) * Math.pow(10, 18)).toString(16)
 
@@ -237,7 +237,7 @@ export default function LeaderboardPage() {
       setOrganizations(prevOrgs => 
         prevOrgs.map(org => 
           org.user_id === donationModal.organization.user_id 
-            ? { ...org, total_pool: org.total_pool + parseFloat(donationAmount) * 3000 } // Convert ETH to USD equivalent
+            ? { ...org, total_pool: org.total_pool + parseFloat(donationAmount) * 1 } // HLUSD to USD equivalent
             : org
         )
       )
@@ -470,7 +470,7 @@ export default function LeaderboardPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Donation Amount (ETH)
+                  Donation Amount (HLUSD)
                 </label>
                 <input
                   type="number"
@@ -482,7 +482,7 @@ export default function LeaderboardPage() {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Minimum: 0.001 ETH (~$2.50 USD)
+                  Minimum: 0.001 HLUSD (~$0.001 USD)
                 </p>
               </div>
 
@@ -491,7 +491,7 @@ export default function LeaderboardPage() {
                   <strong>Organization:</strong> {donationModal.organization?.name}<br />
                   <strong>Description:</strong> {donationModal.organization?.description}<br />
                   <strong>Current Pool:</strong> ${donationModal.organization?.total_pool?.toLocaleString()}<br />
-                  <strong>Your Donation:</strong> {donationAmount ? `${donationAmount} ETH` : '0 ETH'}
+                  <strong>Your Donation:</strong> {donationAmount ? `${donationAmount} HLUSD` : '0 HLUSD'}
                 </p>
               </div>
 
@@ -527,7 +527,7 @@ export default function LeaderboardPage() {
               </div>
 
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                <p>⚡ Powered by MetaMask & Ethereum</p>
+                <p>⚡ Powered by MetaMask & HelaChain</p>
                 <p>🔒 Secure blockchain transaction</p>
                 <p>💝 Your support helps fund open source development</p>
               </div>

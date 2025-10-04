@@ -12,12 +12,12 @@ We have successfully migrated Git Hunters from Polygon to **HelaChain** and impl
 - **Backend/.env**: Changed network from `polygon` to `helalabs`, updated RPC URLs, set `IPFS_MODE=frontend`
 - **Backend/src/contracts/config.js**: Added HelaChain network configuration with proper RPC endpoints
 
-### 📡 **HelaChain Network Details**
-- **Network Name**: HelaChain Mainnet
-- **Chain ID**: 8668 (0x21dc in hex)
-- **RPC URL**: https://mainnet-rpc.helachain.com
-- **Explorer**: https://helascan.com
-- **Native Currency**: HELA
+### 📡 **HelaChain Testnet Details**
+- **Network Name**: Hela Official Runtime Testnet
+- **Chain ID**: 666888 (0xa2d08 in hex)
+- **RPC URL**: https://testnet-rpc.helachain.com
+- **Explorer**: https://testnet-blockscout.helachain.com
+- **Native Currency**: HLUSD
 
 ---
 
@@ -53,7 +53,7 @@ We have successfully migrated Git Hunters from Polygon to **HelaChain** and impl
 ## 🎯 **Chrome Extension Updates**
 
 ### ✅ **HelaChain Support** (`ChromeExtension/popup/popup.js`)
-- **Network Configuration**: HelaChain mainnet details
+- **Network Configuration**: HelaChain testnet details
 - **Auto Network Switch**: Seamless HelaChain connection
 - **Updated Status Messages**: HelaChain-specific feedback
 

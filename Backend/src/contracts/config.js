@@ -5,18 +5,18 @@ const contractConfig = {
   // Network Configuration
   networks: {
     helalabs: {
-      rpcUrl: process.env.NETWORK_RPC_URL || 'https://mainnet-rpc.helachain.com',
-      chainId: parseInt(process.env.NETWORK_CHAIN_ID) || 8668,
-      name: process.env.NETWORK_NAME || 'HelaChain Mainnet',
-      symbol: process.env.NETWORK_SYMBOL || 'HELA',
-      explorer: process.env.NETWORK_EXPLORER || 'https://explorer.helachain.com'
+      rpcUrl: process.env.NETWORK_RPC_URL || 'https://testnet-rpc.helachain.com',
+      chainId: parseInt(process.env.NETWORK_CHAIN_ID) || 666888,
+      name: process.env.NETWORK_NAME || 'Hela Official Runtime Testnet',
+      symbol: process.env.NETWORK_SYMBOL || 'HLUSD',
+      explorer: process.env.NETWORK_EXPLORER || 'https://testnet-blockscout.helachain.com'
     },
     'helalabs-testnet': {
       rpcUrl: 'https://testnet-rpc.helachain.com',
       chainId: 666888,
-      name: 'HelaChain Testnet',
-      symbol: 'HELA',
-      explorer: 'https://testnet-explorer.helachain.com'
+      name: 'Hela Official Runtime Testnet',
+      symbol: 'HLUSD',
+      explorer: 'https://testnet-blockscout.helachain.com'
     },
     // Legacy Polygon support
     polygon: {

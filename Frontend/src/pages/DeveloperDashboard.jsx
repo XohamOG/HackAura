@@ -82,10 +82,11 @@ const mockRepositories = [
 export default function DeveloperDashboard() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const [repositories, setRepositories] = useState([])
+  const [repositories, setRepositories] = useState(mockRepositories) // Start with mock data
   const [bounties, setBounties] = useState([])
   const [completedBounties, setCompletedBounties] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false) // Disable loading to show content immediately
+  const [selectedRepo, setSelectedRepo] = useState(mockRepositories[0]) // Add this here
   const [stats, setStats] = useState({
     totalRepos: 0,
     activeBounties: 0,
@@ -94,10 +95,15 @@ export default function DeveloperDashboard() {
   })
 
   useEffect(() => {
-    if (user) {
-      loadDashboardData()
-    }
-  }, [user])
+    loadDashboardData()
+    
+    // Set a maximum loading time of 3 seconds
+    const loadingTimeout = setTimeout(() => {
+      setIsLoading(false)
+    }, 3000)
+
+    return () => clearTimeout(loadingTimeout)
+  }, [])
 
   const loadDashboardData = async () => {
     setIsLoading(true)
@@ -111,6 +117,8 @@ export default function DeveloperDashboard() {
       ])
     } catch (error) {
       console.error('Failed to load dashboard data:', error)
+      // Fallback to mock data
+      setRepositories(mockRepositories)
     } finally {
       setIsLoading(false)
     }
@@ -147,7 +155,8 @@ export default function DeveloperDashboard() {
 
   const loadCompletedBounties = async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/bounties/completed?developer=${user?.login}`)
+      const userLogin = user?.login || 'anonymous'
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/bounties/completed?developer=${userLogin}`)
       if (response.ok) {
         const data = await response.json()
         setCompletedBounties(data.bounties || [])
@@ -223,7 +232,6 @@ export default function DeveloperDashboard() {
       </div>
     )
   }
-  const [selectedRepo, setSelectedRepo] = useState(mockRepositories[0])
 
   const totalEarnings = completedBounties.reduce((sum, bounty) => sum + bounty.bounty_amount, 0)
   const totalCompleted = completedBounties.length

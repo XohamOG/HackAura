@@ -214,12 +214,12 @@ const IPFSIntegration = () => {
               {uploadStatus.txHash && (
                 <div className="text-xs mt-1">
                   <a 
-                    href={`https://helascan.com/tx/${uploadStatus.txHash}`}
+                    href={`https://testnet-blockscout.helachain.com/tx/${uploadStatus.txHash}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline"
                   >
-                    View on HelaChain Explorer
+                    View on HelaChain Testnet Explorer
                   </a>
                 </div>
               )}

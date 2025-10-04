@@ -7,17 +7,17 @@ class GitHuntersPopup {
     this.metamaskConnected = false;
     this.currentTab = null;
     
-    // HelaChain network configuration
+    // HelaChain testnet configuration
     this.helaChainConfig = {
-      chainId: '0x21dc', // 8668 in hex
-      chainName: 'HelaChain Mainnet',
+      chainId: '0xa2d08', // 666888 in hex
+      chainName: 'Hela Official Runtime Testnet',
       nativeCurrency: {
-        name: 'HELA',
-        symbol: 'HELA',
+        name: 'HLUSD',
+        symbol: 'HLUSD',
         decimals: 18
       },
-      rpcUrls: ['https://mainnet-rpc.helachain.com'],
-      blockExplorerUrls: ['https://helascan.com']
+      rpcUrls: ['https://testnet-rpc.helachain.com'],
+      blockExplorerUrls: ['https://testnet-blockscout.helachain.com']
     };
     
     this.init();
