@@ -18,7 +18,7 @@ export function Navbar() {
           onClick={() => navigate("/")}
           className="flex items-center gap-3 group transition-all duration-300 hover:scale-105"
         >
-          <h1 className="font-calligraphic text-4xl text-foreground">Git Hunter</h1>
+          <h1 className="font-aston text-4xl text-foreground">GitHunter</h1>
         </button>
 
         <div className="flex items-center gap-4">

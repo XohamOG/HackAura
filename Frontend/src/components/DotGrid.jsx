@@ -23,17 +23,17 @@ function hexToRgb(hex) {
 }
 
 const DotGrid = ({
-  dotSize = 2,
-  gap = 20,
-  baseColor = '#666666',
-  activeColor = '#5227FF',
-  proximity = 80,
-  speedTrigger = 50,
-  shockRadius = 150,
-  shockStrength = 3,
-  maxSpeed = 3000,
-  resistance = 500,
-  returnDuration = 1.2,
+  dotSize = 1,
+  gap = 30,
+  baseColor = '#64748b',
+  activeColor = '#22c55e',
+  proximity = 100,
+  speedTrigger = 200,
+  shockRadius = 200,
+  shockStrength = 2,
+  maxSpeed = 2000,
+  resistance = 300,
+  returnDuration = 2.0,
   className = '',
   style
 }) => {
@@ -139,15 +139,15 @@ const DotGrid = ({
         const dsq = dx * dx + dy * dy;
 
         let style = baseColor;
-        let alpha = 0.3; // Base opacity - subtle but visible
+        let alpha = 0.15; // Very subtle base opacity
         
         if (dsq <= proxSq) {
           const dist = Math.sqrt(dsq);
-          const t = 1 - dist / proximity;
+          const t = Math.pow(1 - dist / proximity, 2); // Smooth falloff
           const r = Math.round(baseRgb.r + (activeRgb.r - baseRgb.r) * t);
           const g = Math.round(baseRgb.g + (activeRgb.g - baseRgb.g) * t);
           const b = Math.round(baseRgb.b + (activeRgb.b - baseRgb.b) * t);
-          style = `rgba(${r},${g},${b},${alpha + t * 0.7})`; // Strong highlight when hovered
+          style = `rgba(${r},${g},${b},${alpha + t * 0.3})`; // Very subtle highlight
         } else {
           const r = baseRgb.r;
           const g = baseRgb.g;
