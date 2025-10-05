@@ -59,7 +59,8 @@ By analyzing GitHub profiles, the platform provides **personalized skill insight
 **In essence, GitHunters enables contributors to code, earn, and grow, while communities unite to fund the future of open source — making it not just a platform, but a movement toward sustainable and intelligent open collaboration.**
 
 ---
-<img width="998" height="618" alt="image" src="https://github.com/user-attachments/assets/536c109b-704a-43f5-9590-df10729e6e44" />
+<img width="1167" height="382" alt="image" src="https://github.com/user-attachments/assets/0a4e2749-51a2-4687-b3ac-feee303b388d" />
+
 
 ## 🌟 **Key Benefits & Features**
 
