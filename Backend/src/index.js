@@ -55,6 +55,10 @@ app.use('/api/auth', authRoutes);
 const organizationRoutes = require('./api/organizationRoutes');
 app.use('/api/organization', organizationRoutes);
 
+// AI Recommendation routes
+const recommendationRoutes = require('./api/recommendationRoutes');
+app.use('/api/recommendations', recommendationRoutes);
+
 // Blockchain routes (legacy - for compatibility)
 try {
   const blockchainRoutes = require('./blockchain/routes');
