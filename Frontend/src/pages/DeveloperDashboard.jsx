@@ -8,8 +8,8 @@ import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { useAuth } from "../context/AuthContext"
 import githubOAuth from "../services/githubOAuth"
-import * as organizationService from "../services/organizationService"
-import RepositoryRecommendations from "../components/RepositoryRecommendations"
+import organizationService from "../services/organizationService"
+import recommendationService from "../services/recommendationService"
 
 export default function DeveloperDashboard() {
   const navigate = useNavigate()
@@ -32,6 +32,82 @@ export default function DeveloperDashboard() {
     totalRewards: '0',
     completedBounties: 0
   })
+  
+  // AI Recommendations state
+  const [aiRecommendations, setAiRecommendations] = useState([
+    {
+      id: 1,
+      name: "awesome-react-components",
+      full_name: "brillout/awesome-react-components",
+      description: "Curated List of React Components & Libraries.",
+      html_url: "https://github.com/brillout/awesome-react-components",
+      language: "JavaScript",
+      stargazers_count: 41500,
+      forks_count: 3200,
+      open_issues_count: 15,
+      match_score: 95,
+      reasoning: "Based on your React.js skills and frontend development experience, this repository offers numerous opportunities to contribute to component documentation and examples.",
+      topics: ["react", "components", "javascript"]
+    },
+    {
+      id: 2,
+      name: "ethereum-developer-tools-list",
+      full_name: "ConsenSys/ethereum-developer-tools-list",
+      description: "A guide to available tools and platforms for developing on Ethereum.",
+      html_url: "https://github.com/ConsenSys/ethereum-developer-tools-list",
+      language: "JavaScript",
+      stargazers_count: 5200,
+      forks_count: 1100,
+      open_issues_count: 23,
+      match_score: 88,
+      reasoning: "Perfect match for your blockchain development interests. Many documentation and tooling improvement opportunities.",
+      topics: ["ethereum", "blockchain", "web3"]
+    },
+    {
+      id: 3,
+      name: "public-apis",
+      full_name: "public-apis/public-apis",
+      description: "A collective list of free APIs for use in software and web development.",
+      html_url: "https://github.com/public-apis/public-apis",
+      language: "Python",
+      stargazers_count: 280000,
+      forks_count: 32000,
+      open_issues_count: 45,
+      match_score: 82,
+      reasoning: "Great for developers interested in API integration. Constant need for validation, categorization, and new API additions.",
+      topics: ["api", "development", "resources"]
+    },
+    {
+      id: 4,
+      name: "web3.js",
+      full_name: "ChainSafe/web3.js",
+      description: "Ethereum JavaScript API",
+      html_url: "https://github.com/ChainSafe/web3.js",
+      language: "TypeScript",
+      stargazers_count: 19000,
+      forks_count: 4900,
+      open_issues_count: 180,
+      match_score: 90,
+      reasoning: "Essential Web3 library with active development. Perfect for contributing to blockchain infrastructure with your JavaScript expertise.",
+      topics: ["ethereum", "web3", "typescript"]
+    },
+    {
+      id: 5,
+      name: "awesome-selfhosted",
+      full_name: "awesome-selfhosted/awesome-selfhosted",
+      description: "A list of Free Software network services and web applications which can be hosted on your own servers",
+      html_url: "https://github.com/awesome-selfhosted/awesome-selfhosted",
+      language: "JavaScript",
+      stargazers_count: 191000,
+      forks_count: 9200,
+      open_issues_count: 78,
+      match_score: 75,
+      reasoning: "Large community project with consistent need for software reviews, categorization, and maintenance tasks suitable for all skill levels.",
+      topics: ["selfhosted", "software", "privacy"]
+    }
+  ])
+  const [isLoadingAI, setIsLoadingAI] = useState(false)
+  const [aiError, setAiError] = useState(null)
 
   useEffect(() => {
     loadDashboardData()
@@ -60,7 +136,8 @@ export default function DeveloperDashboard() {
       // Then load bounties and completed bounties in parallel
       await Promise.all([
         loadBounties(),
-        loadCompletedBounties()
+        loadCompletedBounties(),
+        loadAiRecommendations() // Add AI recommendations loading
       ])
       
       // Finally calculate stats after all data is loaded
@@ -250,7 +327,7 @@ export default function DeveloperDashboard() {
             activeIssues: githubIssues.filter(issue => issue.state === 'open').length,
             totalBounties: githubIssues.reduce((sum, issue) => sum + (issue.bounty_amount || 0), 0),
             activeBountiesCount: githubIssues.filter(issue => issue.bounty_amount > 0).length,
-            poolBalance: parseFloat(organizationService.getPoolBalance(repo.id.toString()) || '0')
+            poolBalance: parseFloat(organizationService.getLocalPoolBalance(repo.id.toString()) || '0')
           }
         } catch (repoError) {
           console.error(`❌ Error processing repository ${repo.name}:`, repoError)
@@ -269,7 +346,7 @@ export default function DeveloperDashboard() {
             issues: [],
             totalBounties: 0,
             activeBountiesCount: 0,
-            poolBalance: 0
+            poolBalance: parseFloat(organizationService.getLocalPoolBalance(repo.id.toString()) || '0')
           }
         }
       }))
@@ -352,6 +429,36 @@ export default function DeveloperDashboard() {
       })
     } catch (error) {
       console.error('Failed to load stats:', error)
+    }
+  }
+
+  // Load AI recommendations for the current user
+  const loadAiRecommendations = async () => {
+    if (!user?.login) {
+      console.log('⚠️ No user login available for AI recommendations')
+      return
+    }
+
+    setIsLoadingAI(true)
+    setAiError(null)
+
+    try {
+      console.log(`🤖 Loading AI recommendations for user: ${user.login}`)
+      
+      const result = await recommendationService.getRecommendations(user.login)
+      
+      if (result.success && result.data.recommendations) {
+        setAiRecommendations(result.data.recommendations)
+        console.log(`✅ Loaded ${result.data.recommendations.length} AI recommendations`)
+      } else {
+        throw new Error(result.error || 'Failed to load recommendations')
+      }
+    } catch (error) {
+      console.error('❌ Failed to load AI recommendations:', error)
+      setAiError(error.message)
+      setAiRecommendations([])
+    } finally {
+      setIsLoadingAI(false)
     }
   }
 
@@ -671,7 +778,156 @@ export default function DeveloperDashboard() {
             </TabsContent>
 
             <TabsContent value="recommendations" className="space-y-6">
-              <RepositoryRecommendations />
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Sparkles className="w-5 h-5" />
+                      AI Repository Recommendations
+                    </CardTitle>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={loadAiRecommendations}
+                      disabled={isLoadingAI}
+                    >
+                      {isLoadingAI ? (
+                        <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Refresh AI Picks
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Personalized repository recommendations based on your GitHub activity and skills
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {isLoadingAI ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                      <p className="text-muted-foreground">Analyzing your profile for recommendations...</p>
+                    </div>
+                  ) : aiError ? (
+                    <div className="text-center py-8">
+                      <div className="text-red-500 mb-4">⚠️</div>
+                      <h3 className="font-semibold mb-2 text-red-600">Unable to Load Recommendations</h3>
+                      <p className="text-muted-foreground text-sm mb-4">{aiError}</p>
+                      <Button onClick={loadAiRecommendations} variant="outline">
+                        Try Again
+                      </Button>
+                    </div>
+                  ) : aiRecommendations.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Sparkles className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="font-semibold mb-2">No Recommendations Yet</h3>
+                      <p className="text-muted-foreground text-sm mb-4">
+                        {user?.login ? 
+                          "We're analyzing your GitHub activity to find the perfect repositories for you." :
+                          "Please ensure you're logged in with GitHub to receive personalized recommendations."
+                        }
+                      </p>
+                      <Button onClick={loadAiRecommendations} variant="outline">
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Get AI Recommendations
+                      </Button>
+                    </div>
+                  ) : (
+                    aiRecommendations.map((repo, index) => (
+                      <motion.div
+                        key={repo.id || index}
+                        className="p-6 border rounded-lg hover:shadow-md transition-all duration-300 hover:border-primary/50"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="font-semibold text-lg">{repo.name}</h3>
+                              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                                <Sparkles className="w-3 h-3 mr-1" />
+                                AI Pick
+                              </Badge>
+                              {repo.match_score && (
+                                <Badge variant="outline">
+                                  {Math.round(repo.match_score)}% match
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-1">{repo.full_name}</p>
+                            {repo.language && (
+                              <div className="flex items-center gap-1 mb-3">
+                                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                <span className="text-xs text-muted-foreground">{repo.language}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-right text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1 mb-1">
+                              <Star className="w-3 h-3" />
+                              {repo.stargazers_count || 0}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <GitBranch className="w-3 h-3" />
+                              {repo.forks_count || 0}
+                            </div>
+                          </div>
+                        </div>
+
+                        <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                          {repo.description || 'No description available'}
+                        </p>
+
+                        {repo.reasoning && (
+                          <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md mb-4">
+                            <h4 className="font-medium text-sm mb-1">Why this repository?</h4>
+                            <p className="text-xs text-muted-foreground">{repo.reasoning}</p>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-3 gap-3 text-xs mb-4">
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-orange-500" />
+                            <span>{repo.open_issues_count || 0} issues</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <TrendingUp className="w-3 h-3 text-green-500" />
+                            <span>Active</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Tag className="w-3 h-3 text-blue-500" />
+                            <span>{repo.topics?.slice(0, 2).join(', ') || 'No topics'}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.open(repo.html_url, '_blank')}
+                            className="flex-1"
+                          >
+                            <ExternalLink className="w-3 h-3 mr-1" />
+                            View Repository
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => window.open(`${repo.html_url}/issues`, '_blank')}
+                            className="flex-1"
+                          >
+                            <Clock className="w-3 h-3 mr-1" />
+                            Browse Issues
+                          </Button>
+                        </div>
+                      </motion.div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="completed" className="space-y-6">
