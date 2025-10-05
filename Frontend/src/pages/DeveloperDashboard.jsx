@@ -3,12 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button"
 import { Badge } from "../components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
-import { DollarSign, CheckCircle, Clock, ExternalLink, GitBranch, TrendingUp, Sparkles, Store, Star, Tag } from "lucide-react"
+import { DollarSign, CheckCircle, Clock, ExternalLink, GitBranch, TrendingUp, Sparkles, Store, Star, Tag, RefreshCw } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { useAuth } from "../context/AuthContext"
 import githubOAuth from "../services/githubOAuth"
-import * as organizationService from "../services/organizationService"
+import organizationService from "../services/organizationService"
 
 export default function DeveloperDashboard() {
   const navigate = useNavigate()
@@ -31,6 +31,14 @@ export default function DeveloperDashboard() {
     totalRewards: '0',
     completedBounties: 0
   })
+  
+  // Same state variables as Organization Dashboard
+  const [donationModal, setDonationModal] = useState({ isOpen: false, repo: null })
+  const [donationAmount, setDonationAmount] = useState('')
+  const [isDonating, setIsDonating] = useState(false)
+  const [walletAddress, setWalletAddress] = useState(null)
+  const [poolBalances, setPoolBalances] = useState({}) // Store pool balances for each repo
+  const [isLoadingPools, setIsLoadingPools] = useState(false)
 
   useEffect(() => {
     loadDashboardData()
@@ -219,7 +227,7 @@ export default function DeveloperDashboard() {
                 throw new Error(`Backend API failed: ${issuesResponse.status}`)
               }
               
-              console.log(`💰 Issues with bounties loaded for ${repo.full_name}`)
+              console.log(`💰 Issues with bounties loaded for ${repo.full_name}: ${githubIssues.length} issues`)
             } catch (issueError) {
               console.error('❌ Failed to fetch issues:', issueError)
               // Keep repo data but with empty issues
@@ -249,7 +257,7 @@ export default function DeveloperDashboard() {
             activeIssues: githubIssues.filter(issue => issue.state === 'open').length,
             totalBounties: githubIssues.reduce((sum, issue) => sum + (issue.bounty_amount || 0), 0),
             activeBountiesCount: githubIssues.filter(issue => issue.bounty_amount > 0).length,
-            poolBalance: parseFloat(organizationService.getPoolBalance(repo.id.toString()) || '0')
+            poolBalance: '0' // Will be updated by loadAllPoolBalances
           }
         } catch (repoError) {
           console.error(`❌ Error processing repository ${repo.name}:`, repoError)
@@ -268,7 +276,7 @@ export default function DeveloperDashboard() {
             issues: [],
             totalBounties: 0,
             activeBountiesCount: 0,
-            poolBalance: 0
+            poolBalance: '0' // Will be updated by loadAllPoolBalances
           }
         }
       }))
@@ -276,9 +284,19 @@ export default function DeveloperDashboard() {
       console.log(`✅ Loaded ${reposWithFullData.length} repositories with GitHub issues and bounty data`)
       setRepositories(reposWithFullData)
       
+      // Load pool balances for all repositories (same as Organization Dashboard)
+      await loadAllPoolBalances(reposWithFullData)
+      
       // Set first repository as selected if none selected
       if (reposWithFullData.length > 0 && !selectedRepo) {
         setSelectedRepo(reposWithFullData[0])
+      }
+      
+      // Try to connect wallet (non-blocking, same as Organization Dashboard)
+      try {
+        await connectWallet()
+      } catch (error) {
+        console.log('⚠️ Wallet not connected yet, user can connect manually')
       }
       
     } catch (error) {
@@ -351,6 +369,106 @@ export default function DeveloperDashboard() {
       })
     } catch (error) {
       console.error('Failed to load stats:', error)
+    }
+  }
+
+  // Same functions as Organization Dashboard
+  const connectWallet = async () => {
+    try {
+      const address = await organizationService.getWalletAddress()
+      if (address) {
+        setWalletAddress(address)
+        console.log('✅ Connected to wallet:', address)
+        return address
+      }
+    } catch (error) {
+      console.error('❌ Failed to connect wallet:', error)
+      throw error
+    }
+  }
+
+  // Load pool balance for a specific repository (same as Organization Dashboard)
+  const loadPoolBalance = async (repoId) => {
+    try {
+      console.log(`💰 Loading pool balance for repository ${repoId}`)
+      const result = await organizationService.getRepositoryPool(repoId)
+      if (result.success && result.data.poolBalanceWei) {
+        const balance = organizationService.weiToHLUSD(result.data.poolBalanceWei)
+        setPoolBalances(prev => ({ ...prev, [repoId]: balance }))
+        console.log(`✅ Pool balance loaded for repo ${repoId}: ${balance} HLUSD`)
+        return balance
+      } else {
+        // Fallback to local pool balance
+        const localBalance = organizationService.getLocalPoolBalance(repoId) || '0'
+        setPoolBalances(prev => ({ ...prev, [repoId]: localBalance }))
+        console.log(`✅ Using local pool balance for repo ${repoId}: ${localBalance} HLUSD`)
+        return localBalance
+      }
+    } catch (error) {
+      console.error(`❌ Failed to load pool balance for repo ${repoId}:`, error)
+      // Fallback to local pool balance
+      const localBalance = organizationService.getLocalPoolBalance(repoId) || '0'
+      setPoolBalances(prev => ({ ...prev, [repoId]: localBalance }))
+      return localBalance
+    }
+  }
+
+  // Load pool balances for all repositories (same as Organization Dashboard)
+  const loadAllPoolBalances = async (repos) => {
+    setIsLoadingPools(true)
+    try {
+      const balancePromises = repos.map(repo => loadPoolBalance(repo.id))
+      await Promise.all(balancePromises)
+    } catch (error) {
+      console.error('❌ Failed to load pool balances:', error)
+    } finally {
+      setIsLoadingPools(false)
+    }
+  }
+
+  // Process donation to repository (same as Organization Dashboard)
+  const processDonation = async () => {
+    if (!donationAmount || parseFloat(donationAmount) <= 0) {
+      alert('Please enter a valid donation amount')
+      return
+    }
+
+    if (!walletAddress) {
+      try {
+        await connectWallet()
+      } catch (error) {
+        return
+      }
+    }
+
+    setIsDonating(true)
+
+    try {
+      console.log(`💰 Donating ${donationAmount} HLUSD to repository ${donationModal.repo.id}`)
+
+      const result = await organizationService.donateToRepository(
+        donationModal.repo.id,
+        donationAmount,
+        walletAddress
+      )
+
+      if (result.success) {
+        alert(`✅ Successfully donated ${donationAmount} HLUSD to ${donationModal.repo.name}!\nTransaction: ${result.data.transactionHash}`)
+        
+        // Refresh pool balance for this repo
+        await loadPoolBalance(donationModal.repo.id)
+        
+        // Close modal and reset
+        setDonationModal({ isOpen: false, repo: null })
+        setDonationAmount('')
+      } else {
+        alert(`❌ Donation failed: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('❌ Donation failed:', error)
+      alert(`❌ Donation failed: ${error.message}`)
+    } finally {
+      setIsDonating(false)
     }
   }
 
@@ -458,10 +576,24 @@ export default function DeveloperDashboard() {
                 <div className="lg:col-span-1">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5" />
-                        Available Repositories
-                      </CardTitle>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5" />
+                          Available Repositories
+                        </CardTitle>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => loadAllPoolBalances(repositories)}
+                          disabled={isLoadingPools}
+                        >
+                          {isLoadingPools ? (
+                            <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                          ) : (
+                            <RefreshCw className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {isLoading ? (
@@ -521,10 +653,10 @@ export default function DeveloperDashboard() {
                               {repo.description || 'No description available'}
                             </p>
                             
-                            <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="grid grid-cols-2 gap-2 text-xs mb-3">
                               <div className="flex items-center gap-1">
                                 <DollarSign className="w-3 h-3 text-green-600" />
-                                <span className="font-medium">{repo.totalBounties || 0} HLUSD</span>
+                                <span className="font-medium">{formatHLUSD(repo.totalBounties || 0)} HLUSD</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <Clock className="w-3 h-3 text-orange-500" />
@@ -536,9 +668,23 @@ export default function DeveloperDashboard() {
                               </div>
                               <div className="flex items-center gap-1">
                                 <GitBranch className="w-3 h-3 text-purple-500" />
-                                <span>{repo.poolBalance || 0} pool</span>
+                                <span>{formatHLUSD(poolBalances[repo.id] || 0)} pool</span>
                               </div>
                             </div>
+                            
+                            {/* Donate Button - Same as Organization Dashboard */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full text-xs"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setDonationModal({ isOpen: true, repo })
+                              }}
+                            >
+                              <DollarSign className="w-3 h-3 mr-1" />
+                              Donate to Pool
+                            </Button>
                           </motion.div>
                         ))
                       )}
@@ -589,8 +735,8 @@ export default function DeveloperDashboard() {
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-2">
                                     <h4 className="font-medium text-lg">{issue.title}</h4>
-                                    <Badge variant={issue.status === 'open' ? 'default' : 'secondary'}>
-                                      {issue.status}
+                                    <Badge variant={issue.state === 'open' ? 'default' : 'secondary'}>
+                                      {issue.state}
                                     </Badge>
                                     {issue.bounty_amount > 0 && (
                                       <Badge className="bg-green-100 text-green-800">
@@ -598,41 +744,39 @@ export default function DeveloperDashboard() {
                                       </Badge>
                                     )}
                                   </div>
+                                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                                    {issue.body || issue.description || 'No description provided'}
+                                  </p>
+                                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                                    <span>Created: {new Date(issue.created_at).toLocaleDateString()}</span>
+                                    {issue.labels && issue.labels.length > 0 && (
+                                      <div className="flex items-center gap-1">
+                                        <Tag className="w-3 h-3" />
+                                        {issue.labels.slice(0, 3).join(', ')}
+                                        {issue.labels.length > 3 && ` +${issue.labels.length - 3} more`}
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                                 
-                                <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                                  {issue.description || 'No description provided'}
-                                </p>
-                                
-                                <div className="flex items-center gap-3 text-xs text-gray-500">
-                                  <span>Created: {new Date(issue.created_at).toLocaleDateString()}</span>
-                                  {issue.labels && issue.labels.length > 0 && (
-                                    <div className="flex items-center gap-1">
-                                      <Tag className="w-3 h-3" />
-                                      {issue.labels.slice(0, 3).join(', ')}
-                                      {issue.labels.length > 3 && ` +${issue.labels.length - 3} more`}
-                                    </div>
-                                  )}
+                                <div className="flex flex-col gap-2 ml-4">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => window.open(issue.html_url || issue.github_issue_url, '_blank')}
+                                    className="gap-1"
+                                  >
+                                    <ExternalLink className="w-3 h-3" />
+                                    View on GitHub
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    className="gap-1"
+                                  >
+                                    <DollarSign className="w-3 h-3" />
+                                    Start Working
+                                  </Button>
                                 </div>
-                              </div>
-                              
-                              <div className="flex flex-col gap-2 ml-4">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => window.open(issue.html_url || issue.github_issue_url, '_blank')}
-                                  className="gap-1"
-                                >
-                                  <ExternalLink className="w-3 h-3" />
-                                  View on GitHub
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  className="gap-1"
-                                >
-                                  <DollarSign className="w-3 h-3" />
-                                  Start Working
-                                </Button>
                               </div>
                             </motion.div>
                           ))
@@ -769,6 +913,74 @@ export default function DeveloperDashboard() {
           </Tabs>
         </motion.div>
       </div>
+
+      {/* Donation Modal - Same as Organization Dashboard */}
+      {donationModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            className="bg-background rounded-lg shadow-xl p-6 w-full max-w-md"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+          >
+            <h3 className="text-lg font-semibold mb-4">
+              Donate to {donationModal.repo?.name}
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              Support this repository by donating to its bounty pool. 
+              Your donation will be used to fund bounties for open issues.
+            </p>
+            <div className="text-sm text-muted-foreground mb-4">
+              <strong>Current Pool:</strong> {formatHLUSD(poolBalances[donationModal.repo?.id] || '0')} HLUSD
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Donation Amount (HLUSD)
+                </label>
+                <input
+                  type="number"
+                  className="w-full p-2 border rounded-md"
+                  value={donationAmount}
+                  onChange={(e) => setDonationAmount(e.target.value)}
+                  placeholder="Enter amount"
+                  min="0"
+                  step="0.000001"
+                />
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  onClick={processDonation}
+                  disabled={isDonating || !donationAmount}
+                  className="flex-1"
+                >
+                  {isDonating ? (
+                    <>
+                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <DollarSign className="w-4 h-4 mr-2" />
+                      Donate
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setDonationModal({ isOpen: false, repo: null })
+                    setDonationAmount('')
+                  }}
+                  disabled={isDonating}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   )
 }
