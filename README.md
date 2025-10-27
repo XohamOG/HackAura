@@ -50,13 +50,15 @@
 
 ## 🌟 **What is GitHunters?**
 
-GitHunters is a **decentralized bounty and funding platform** that revolutionizes collaboration in the open-source ecosystem by blending **blockchain transparency**, **AI-powered intelligence**, and **GitHub integration**. Built on the **Hela Testnet**, it allows organizations to post and manage bounties directly on GitHub issues, with payments securely handled through smart contract escrow in **HLUSD tokens**.
+GitHunters is a decentralized platform that encourages open-source collaboration while rewarding contributors for their efforts. Built on the Hela Testnet, it transforms the way developers and organizations interact on GitHub by attaching transparent, blockchain-backed bounties to open-source issues.
 
-Developers can connect via **MetaMask** and **GitHub OAuth**, receive **AI-powered project recommendations** through **Gemini AI**, and get rewarded automatically once their contributions are approved. Beyond bounty-based rewards, GitHunters introduces a **Project Pooling System** where contributors, sponsors, and organizations can donate tokens to support promising open-source initiatives, creating a decentralized funding ecosystem that sustains innovation and community growth.
+Through GitHunters, anyone can raise or solve issues on GitHub and earn rewards in HLUSD tokens, managed securely through smart contract escrow. Admins and organizations can assign bounties to issues, ensuring that valuable contributions are recognized and incentivized fairly.
 
-By analyzing GitHub profiles, the platform provides **personalized skill insights**, helping developers discover opportunities that align with their strengths while improving over time. With a modern **React + Vite frontend**, **Express.js backend**, and seamless **blockchain integration**, GitHunters ensures trust, transparency, and empowerment for both developers and organizations.
+Developers can connect using MetaMask and GitHub OAuth, while Gemini AI powers personalized project recommendations based on each user's GitHub activity and skills. The platform also features a Project Pooling System, allowing the community, sponsors, and contributors to donate tokens to promising open-source projects — helping sustain innovation and collective growth.
 
-**In essence, GitHunters enables contributors to code, earn, and grow, while communities unite to fund the future of open source — making it not just a platform, but a movement toward sustainable and intelligent open collaboration.**
+With a modern React + Vite frontend, Express.js backend, and seamless blockchain integration, GitHunters ensures transparency, trust, and automation across every contribution.
+
+In short, GitHunters is more than just a platform — it's a movement that rewards open-source development, empowers contributors to earn through their skills, and builds a decentralized ecosystem where collaboration truly pays off.
 
 ---
 <img width="1167" height="382" alt="image" src="https://github.com/user-attachments/assets/0a4e2749-51a2-4687-b3ac-feee303b388d" />
@@ -425,6 +427,11 @@ npm run dev
       <td>🌐 <strong>Live Application</strong></td>
       <td><a href="http://hack-aura-mu.vercel.app">hack-aura-mu.vercel.app</a></td>
       <td>Main GitHunters platform</td>
+    </tr>
+    <tr>
+      <td>🎥 <strong>Demo Video</strong></td>
+      <td><a href="https://youtu.be/THzsQGnxGAY">YouTube Demo</a></td>
+      <td>Watch GitHunters in action</td>
     </tr>
     <tr>
       <td>📊 <strong>Blockchain Explorer</strong></td>
