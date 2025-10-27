@@ -48,6 +48,43 @@
 
 ---
 
+## 📊 **Live Transaction Examples**
+
+<div align="center">
+  <table>
+    <tr>
+      <th><strong>Action</strong></th>
+      <th><strong>Tx Hash</strong></th>
+      <th><strong>From → To</strong></th>
+      <th><strong>Value (HLUSD)</strong></th>
+      <th><strong>Explanation</strong></th>
+    </tr>
+    <tr>
+      <td><strong>Register Repo</strong></td>
+      <td><code>0x6fd4dc6570a4f736db79d2ff9866c1b8ad2f85857c5d09dfe7dba2e8e6a61666</code></td>
+      <td><code>0x05F7Aa50391BfAd9F28A507F63a202547275c4eC → 0xd9145CCE52D386f254917e481eB44e9943F39138</code></td>
+      <td align="right">0.001</td>
+      <td>Repository registration transaction — a small HLUSD transfer to initialize or verify the repository in the bounty escrow system.</td>
+    </tr>
+    <tr>
+      <td><strong>Donate to Repo</strong></td>
+      <td><code>0x8ecfceb1a44110a7b4c844028bdc4237dc0e85b52eea1d589ad9b02369c5a084</code></td>
+      <td><code>0x05F7Aa50391BfAd9F28A507F63a202547275c4eC → 0xd9145CCE52D386f254917e481eB44e9943F39138</code></td>
+      <td align="right">1.000</td>
+      <td>Donation made to the registered repository, funding the bounty pool for contributors.</td>
+    </tr>
+    <tr>
+      <td><strong>Assign Bounty</strong></td>
+      <td><code>0x8cd46a8cc8b9d5bfe6c44a88948c8f257f2c9e0e9b28d3a64ec6f6b5ef4a10a3</code></td>
+      <td><code>0x05F7Aa50391BfAd9F28A507F63a202547275c4eC → 0xd8b934580fcE35a11B58C6D73aDeE468a2833fa8</code></td>
+      <td align="right">0 <em>(Fee 0.022134)</em></td>
+      <td>Smart contract call on <code>BountyEscrow</code> assigning the bounty to a selected contributor. No HLUSD value transferred, only gas fee incurred.</td>
+    </tr>
+  </table>
+</div>
+
+---
+
 ## 🌟 **What is GitHunters?**
 
 GitHunters is a decentralized platform that encourages open-source collaboration while rewarding contributors for their efforts. Built on the Hela Testnet, it transforms the way developers and organizations interact on GitHub by attaching transparent, blockchain-backed bounties to open-source issues.
