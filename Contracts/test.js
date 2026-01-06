@@ -1,10 +1,10 @@
 const { ethers } = require("ethers");
 
 
-// Helachain RPC endpoint
-const provider = new ethers.JsonRpcProvider("https://testnet-rpc.helachain.com");
+// Lisk Sepolia RPC endpoint
+const provider = new ethers.JsonRpcProvider("https://rpc.sepolia-api.lisk.com");
 
-// Your transaction hashes
+// Your transaction hashes (update with new Lisk transactions)
 const txs = [
   "0x6fd4dc657033d3026b84cdcca391d8063f1b3005ea158cd374dffc6ffce71666", // donation to repo
   "0x8ecfceb1a48a7bacb75582b3bb1539d96d14cd9e82a01e15911b3a2d1e03a084", // donate to repository
@@ -12,7 +12,7 @@ const txs = [
 ];
 
 async function verifyTransactions() {
-  console.log("🔍 Fetching transaction details from Helachain Testnet...");
+  console.log("🔍 Fetching transaction details from Lisk Sepolia Testnet...");
   
   for (const hash of txs) {
     const tx = await provider.getTransaction(hash);
@@ -25,7 +25,7 @@ async function verifyTransactions() {
     console.log(`📄 Tx Hash: ${hash}`);
     console.log(`From: ${tx.from}`);
     console.log(`To: ${tx.to}`);
-    console.log(`Value: ${ethers.formatEther(tx.value)} HLUSD`);
+    console.log(`Value: ${ethers.formatEther(tx.value)} ETH`);
     console.log("Status: Success (if confirmed on explorer)");
   }
 }

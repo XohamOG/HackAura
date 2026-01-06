@@ -1,7 +1,7 @@
 {
   "name": "git-hunters",
   "version": "1.0.0",
-  "description": "Decentralized bounty platform for GitHub repositories on HelaChain",
+  "description": "Decentralized bounty platform for GitHub repositories on Lisk",
   "main": "index.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
@@ -17,7 +17,7 @@
     "bounty",
     "github",
     "decentralized",
-    "helachain",
+    "lisk",
     "ipfs",
     "web3"
   ],

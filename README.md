@@ -28,12 +28,12 @@
     </tr>
     <tr>
       <td><strong>🏦 Bounty Escrow</strong></td>
-      <td><code>Coming Soon</code></td>
+      <td><code>0xCc47A9e11De3aA189cD801fD54054493C5e11a68</code></td>
       <td rowspan="2">Lisk Sepolia Testnet</td>
     </tr>
     <tr>
       <td><strong>📚 Repository Registry</strong></td>
-      <td><code>Coming Soon</code></td>
+      <td><code>0xa50C8481E6a39681b7B881e9884e8a03567BAdFF</code></td>
     </tr>
   </table>
 </div>
@@ -280,8 +280,8 @@ VITE_GITHUB_REDIRECT_URI=http://localhost:3000/auth/callback
 VITE_NETWORK_NAME=Lisk Sepolia Testnet
 VITE_CHAIN_ID=4202
 VITE_RPC_URL=https://rpc.sepolia-api.lisk.com
-VITE_BOUNTY_ESCROW_ADDRESS=your_deployed_contract_address
-VITE_REPO_REGISTRY_ADDRESS=your_deployed_contract_address
+VITE_BOUNTY_ESCROW_ADDRESS=0xCc47A9e11De3aA189cD801fD54054493C5e11a68
+VITE_REPO_REGISTRY_ADDRESS=0xa50C8481E6a39681b7B881e9884e8a03567BAdFF
 ```
 
 **Backend (.env):**
@@ -291,8 +291,8 @@ GITHUB_CLIENT_ID=your_github_client_id
 GITHUB_CLIENT_SECRET=your_github_client_secret
 GITHUB_BEARER_TOKEN=your_github_token
 GEMINI_API_KEY=your_gemini_api_key
-BOUNTY_ESCROW_ADDRESS=your_deployed_contract_address
-REPO_REGISTRY_ADDRESS=your_deployed_contract_address
+BOUNTY_ESCROW_ADDRESS=0xCc47A9e11De3aA189cD801fD54054493C5e11a68
+REPO_REGISTRY_ADDRESS=0xa50C8481E6a39681b7B881e9884e8a03567BAdFF
 NETWORK_CHAIN_ID=4202
 NETWORK_RPC_URL=https://rpc.sepolia-api.lisk.com
 ```
@@ -441,12 +441,12 @@ npm run dev
     </tr>
     <tr>
       <td>🏦 <strong>Bounty Escrow</strong></td>
-      <td><code>Coming Soon</code></td>
+      <td><code>0xCc47A9e11De3aA189cD801fD54054493C5e11a68</code></td>
       <td>Smart contract managing bounty payments</td>
     </tr>
     <tr>
       <td>📚 <strong>Repository Registry</strong></td>
-      <td><code>Coming Soon</code></td>
+      <td><code>0xa50C8481E6a39681b7B881e9884e8a03567BAdFF</code></td>
       <td>Smart contract tracking registered repos</td>
     </tr>
     <tr>

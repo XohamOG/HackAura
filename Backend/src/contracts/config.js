@@ -4,19 +4,19 @@ require('dotenv').config();
 const contractConfig = {
   // Network Configuration
   networks: {
-    helalabs: {
-      rpcUrl: process.env.NETWORK_RPC_URL || 'https://testnet-rpc.helachain.com',
-      chainId: parseInt(process.env.NETWORK_CHAIN_ID) || 666888,
-      name: process.env.NETWORK_NAME || 'Hela Official Runtime Testnet',
-      symbol: process.env.NETWORK_SYMBOL || 'HLUSD',
-      explorer: process.env.NETWORK_EXPLORER || 'https://testnet-blockscout.helachain.com'
+    lisk: {
+      rpcUrl: process.env.NETWORK_RPC_URL || 'https://rpc.sepolia-api.lisk.com',
+      chainId: parseInt(process.env.NETWORK_CHAIN_ID) || 4202,
+      name: process.env.NETWORK_NAME || 'Lisk Sepolia Testnet',
+      symbol: process.env.NETWORK_SYMBOL || 'ETH',
+      explorer: process.env.NETWORK_EXPLORER || 'https://sepolia-blockscout.lisk.com'
     },
-    'helalabs-testnet': {
-      rpcUrl: 'https://testnet-rpc.helachain.com',
-      chainId: 666888,
-      name: 'Hela Official Runtime Testnet',
-      symbol: 'HLUSD',
-      explorer: 'https://testnet-blockscout.helachain.com'
+    'lisk-sepolia': {
+      rpcUrl: 'https://rpc.sepolia-api.lisk.com',
+      chainId: 4202,
+      name: 'Lisk Sepolia Testnet',
+      symbol: 'ETH',
+      explorer: 'https://sepolia-blockscout.lisk.com'
     },
     // Legacy Polygon support
     polygon: {
@@ -29,12 +29,12 @@ const contractConfig = {
   // Contract Addresses
   contracts: {
     bountyEscrow: {
-      address: process.env.BOUNTY_ESCROW_ADDRESS || '0xd9145CCE52D386f254917e481eB44e9943F39138',
-      network: process.env.NETWORK || 'polygon'
+      address: process.env.BOUNTY_ESCROW_ADDRESS || '0xCc47A9e11De3aA189cD801fD54054493C5e11a68',
+      network: process.env.NETWORK || 'lisk'
     },
     repoRegistry: {
-      address: process.env.REPO_REGISTRY_ADDRESS || '0xd8b934580fcE35a11B58C6D73aDeE468a2833fa8',
-      network: process.env.NETWORK || 'polygon'
+      address: process.env.REPO_REGISTRY_ADDRESS || '0xa50C8481E6a39681b7B881e9884e8a03567BAdFF',
+      network: process.env.NETWORK || 'lisk'
     }
   },
 
@@ -49,7 +49,7 @@ const contractConfig = {
 
   // Utility Functions
   getCurrentNetwork() {
-    const networkName = process.env.NETWORK || 'polygon';
+    const networkName = process.env.NETWORK || 'lisk';
     return this.networks[networkName];
   },
 

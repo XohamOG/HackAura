@@ -11,7 +11,7 @@ console.log('🏢 Organization Dashboard API routes loaded');
 
 /**
  * POST /api/organization/donate
- * Donate HLUSD to a repository pool
+ * Donate ETH to a repository pool
  */
 router.post('/donate', async (req, res) => {
   try {
@@ -25,7 +25,7 @@ router.post('/donate', async (req, res) => {
       });
     }
 
-    console.log(`💰 Processing donation: ${amount} HLUSD to repo ${repoId}`);
+    console.log(`💰 Processing donation: ${amount} ETH to repo ${repoId}`);
 
     const result = await bountyEscrow.donateToProject(repoId, amount, donorAddress);
 
@@ -71,7 +71,7 @@ router.post('/bounty/fund', async (req, res) => {
       });
     }
 
-    console.log(`🎯 Funding bounty: ${amount} HLUSD for issue ${issueId} in repo ${repoId}`);
+    console.log(`🎯 Funding bounty: ${amount} ETH for issue ${issueId} in repo ${repoId}`);
 
     const result = await bountyEscrow.fundBountyFromPool(repoId, issueId, amount, orgAddress);
 
@@ -253,7 +253,7 @@ router.get('/bounty/:repoId/:issueId', async (req, res) => {
 
 /**
  * POST /api/organization/stake
- * Stake HLUSD for organization credibility
+ * Stake ETH for organization credibility
  */
 router.post('/stake', async (req, res) => {
   try {
@@ -267,7 +267,7 @@ router.post('/stake', async (req, res) => {
       });
     }
 
-    console.log(`🏛️ Processing stake: ${amount} HLUSD from ${userAddress}`);
+    console.log(`🏛️ Processing stake: ${amount} ETH from ${userAddress}`);
 
     const result = await repoRegistry.stakeForOrganization(amount, userAddress);
 

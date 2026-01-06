@@ -12,8 +12,8 @@ class RepoRegistryHelper {
   }
 
   /**
-   * Stake MATIC for organization credibility
-   * @param {string} amount - Amount in MATIC (as string)
+   * Stake ETH for organization credibility
+   * @param {string} amount - Amount in ETH (as string)
    * @param {string} orgAddress - Organization address (optional, uses default account)
    * @returns {Promise<Object>} Transaction result
    */
@@ -22,7 +22,7 @@ class RepoRegistryHelper {
       const amountWei = this.web3Provider.etherToWei(amount);
       const fromAddress = orgAddress || this.web3Provider.getAccount().address;
 
-      console.log(`🔒 Staking ${amount} MATIC for organization ${fromAddress}`);
+      console.log(`🔒 Staking ${amount} ETH for organization ${fromAddress}`);
 
       const transaction = {
         to: this.contractAddress,
@@ -100,7 +100,7 @@ class RepoRegistryHelper {
    * Assign bounty to an issue
    * @param {number} repoId - Repository ID
    * @param {number} issueId - Issue ID
-   * @param {string} bountyAmount - Bounty amount in MATIC
+   * @param {string} bountyAmount - Bounty amount in ETH
    * @param {string} creatorAddress - Bounty creator address (optional, uses default account)
    * @returns {Promise<Object>} Transaction result
    */
@@ -109,7 +109,7 @@ class RepoRegistryHelper {
       const bountyWei = this.web3Provider.etherToWei(bountyAmount);
       const fromAddress = creatorAddress || this.web3Provider.getAccount().address;
 
-      console.log(`🎯 Assigning ${bountyAmount} MATIC bounty to issue ${issueId}`);
+      console.log(`🎯 Assigning ${bountyAmount} ETH bounty to issue ${issueId}`);
 
       const transaction = {
         to: this.contractAddress,

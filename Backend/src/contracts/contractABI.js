@@ -1,16 +1,16 @@
-// Contract ABIs for BountyEscrow and RepoRegistry
+// Contract ABIs for BountyEscrow and RepoRegistry on Lisk Sepolia
 
 const bountyEscrowABI = [
   {
-    "inputs": [{"internalType": "address", "name": "_initialOwner", "type": "address"}],
+    "inputs": [],
     "stateMutability": "nonpayable",
     "type": "constructor"
   },
   {
     "anonymous": false,
     "inputs": [
-      {"indexed": false, "internalType": "uint256", "name": "repoId", "type": "uint256"},
-      {"indexed": false, "internalType": "uint256", "name": "issueId", "type": "uint256"},
+      {"indexed": true, "internalType": "uint256", "name": "repoId", "type": "uint256"},
+      {"indexed": true, "internalType": "uint256", "name": "issueId", "type": "uint256"},
       {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"},
       {"indexed": false, "internalType": "address", "name": "org", "type": "address"}
     ],
@@ -20,8 +20,18 @@ const bountyEscrowABI = [
   {
     "anonymous": false,
     "inputs": [
-      {"indexed": false, "internalType": "uint256", "name": "repoId", "type": "uint256"},
-      {"indexed": false, "internalType": "uint256", "name": "issueId", "type": "uint256"},
+      {"indexed": true, "internalType": "uint256", "name": "repoId", "type": "uint256"},
+      {"indexed": true, "internalType": "uint256", "name": "issueId", "type": "uint256"},
+      {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"}
+    ],
+    "name": "BountyReclaimed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "internalType": "uint256", "name": "repoId", "type": "uint256"},
+      {"indexed": true, "internalType": "uint256", "name": "issueId", "type": "uint256"},
       {"indexed": false, "internalType": "address", "name": "solver", "type": "address"},
       {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"}
     ],
@@ -31,15 +41,25 @@ const bountyEscrowABI = [
   {
     "anonymous": false,
     "inputs": [
-      {"indexed": false, "internalType": "uint256", "name": "repoId", "type": "uint256"},
-      {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"},
-      {"indexed": false, "internalType": "address", "name": "donor", "type": "address"}
+      {"indexed": true, "internalType": "uint256", "name": "repoId", "type": "uint256"},
+      {"indexed": true, "internalType": "address", "name": "donor", "type": "address"},
+      {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"}
     ],
-    "name": "ProjectDonated",
+    "name": "DonationReceived",
     "type": "event"
   },
   {
-    "inputs": [{"internalType": "uint256", "name": "_repoId", "type": "uint256"}],
+    "anonymous": false,
+    "inputs": [
+      {"indexed": false, "internalType": "uint256", "name": "newPeriod", "type": "uint256"}
+    ],
+    "name": "ReclaimPeriodUpdated",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {"internalType": "uint256", "name": "repoId", "type": "uint256"}
+    ],
     "name": "donateToProject",
     "outputs": [],
     "stateMutability": "payable",
@@ -47,10 +67,10 @@ const bountyEscrowABI = [
   },
   {
     "inputs": [
-      {"internalType": "uint256", "name": "_repoId", "type": "uint256"},
-      {"internalType": "uint256", "name": "_issueId", "type": "uint256"},
-      {"internalType": "uint256", "name": "_amount", "type": "uint256"},
-      {"internalType": "address", "name": "_org", "type": "address"}
+      {"internalType": "uint256", "name": "repoId", "type": "uint256"},
+      {"internalType": "uint256", "name": "issueId", "type": "uint256"},
+      {"internalType": "uint256", "name": "amount", "type": "uint256"},
+      {"internalType": "address", "name": "org", "type": "address"}
     ],
     "name": "fundBountyFromPool",
     "outputs": [],
@@ -59,8 +79,8 @@ const bountyEscrowABI = [
   },
   {
     "inputs": [
-      {"internalType": "uint256", "name": "_repoId", "type": "uint256"},
-      {"internalType": "uint256", "name": "_issueId", "type": "uint256"}
+      {"internalType": "uint256", "name": "repoId", "type": "uint256"},
+      {"internalType": "uint256", "name": "issueId", "type": "uint256"}
     ],
     "name": "getBounty",
     "outputs": [
@@ -72,26 +92,41 @@ const bountyEscrowABI = [
     "type": "function"
   },
   {
-    "inputs": [{"internalType": "uint256", "name": "_repoId", "type": "uint256"}],
+    "inputs": [
+      {"internalType": "uint256", "name": "repoId", "type": "uint256"}
+    ],
     "name": "getProjectPool",
-    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "outputs": [
+      {"internalType": "uint256", "name": "", "type": "uint256"}
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
-      {"internalType": "uint256", "name": "_repoId", "type": "uint256"},
-      {"internalType": "uint256", "name": "_amount", "type": "uint256"}
+      {"internalType": "uint256", "name": "repoId", "type": "uint256"},
+      {"internalType": "uint256", "name": "amount", "type": "uint256"}
     ],
     "name": "hasSufficientFunds",
-    "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+    "outputs": [
+      {"internalType": "bool", "name": "", "type": "bool"}
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {"internalType": "address", "name": "", "type": "address"}
+    ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
-      {"internalType": "uint256", "name": "_repoId", "type": "uint256"},
-      {"internalType": "uint256", "name": "_issueId", "type": "uint256"}
+      {"internalType": "uint256", "name": "repoId", "type": "uint256"},
+      {"internalType": "uint256", "name": "issueId", "type": "uint256"}
     ],
     "name": "reclaimBounty",
     "outputs": [],
@@ -99,10 +134,19 @@ const bountyEscrowABI = [
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "reclaimPeriod",
+    "outputs": [
+      {"internalType": "uint256", "name": "", "type": "uint256"}
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
-      {"internalType": "uint256", "name": "_repoId", "type": "uint256"},
-      {"internalType": "uint256", "name": "_issueId", "type": "uint256"},
-      {"internalType": "address", "name": "_solver", "type": "address"}
+      {"internalType": "uint256", "name": "repoId", "type": "uint256"},
+      {"internalType": "uint256", "name": "issueId", "type": "uint256"},
+      {"internalType": "address", "name": "solver", "type": "address"}
     ],
     "name": "releaseBounty",
     "outputs": [],
@@ -110,47 +154,61 @@ const bountyEscrowABI = [
     "type": "function"
   },
   {
-    "inputs": [{"internalType": "uint256", "name": "_period", "type": "uint256"}],
+    "inputs": [
+      {"internalType": "uint256", "name": "periodInSeconds", "type": "uint256"}
+    ],
     "name": "setReclaimPeriod",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
+  },
+  {
+    "stateMutability": "payable",
+    "type": "receive"
   }
 ];
 
 const repoRegistryABI = [
   {
-    "inputs": [{"internalType": "address", "name": "_bountyEscrow", "type": "address"}],
+    "inputs": [
+      {"internalType": "address", "name": "_bountyEscrow", "type": "address"}
+    ],
     "stateMutability": "nonpayable",
     "type": "constructor"
   },
   {
     "anonymous": false,
     "inputs": [
-      {"indexed": false, "internalType": "uint256", "name": "repoId", "type": "uint256"},
-      {"indexed": false, "internalType": "uint256", "name": "issueId", "type": "uint256"},
-      {"indexed": false, "internalType": "uint256", "name": "bounty", "type": "uint256"},
-      {"indexed": false, "internalType": "address", "name": "creator", "type": "address"}
+      {"indexed": true, "internalType": "uint256", "name": "repoId", "type": "uint256"},
+      {"indexed": true, "internalType": "uint256", "name": "issueId", "type": "uint256"},
+      {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"}
     ],
-    "name": "BountyCreated",
+    "name": "BountyAssigned",
     "type": "event"
   },
   {
     "anonymous": false,
     "inputs": [
-      {"indexed": false, "internalType": "uint256", "name": "repoId", "type": "uint256"},
-      {"indexed": false, "internalType": "string", "name": "cid", "type": "string"},
-      {"indexed": false, "internalType": "address", "name": "owner", "type": "address"},
-      {"indexed": false, "internalType": "bool", "name": "isPublic", "type": "bool"}
+      {"indexed": true, "internalType": "address", "name": "org", "type": "address"},
+      {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"}
+    ],
+    "name": "OrgStaked",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true, "internalType": "uint256", "name": "repoId", "type": "uint256"},
+      {"indexed": true, "internalType": "address", "name": "owner", "type": "address"}
     ],
     "name": "RepoRegistered",
     "type": "event"
   },
   {
     "inputs": [
-      {"internalType": "uint256", "name": "_repoId", "type": "uint256"},
-      {"internalType": "uint256", "name": "_issueId", "type": "uint256"},
-      {"internalType": "uint256", "name": "_bounty", "type": "uint256"}
+      {"internalType": "uint256", "name": "repoId", "type": "uint256"},
+      {"internalType": "uint256", "name": "issueId", "type": "uint256"},
+      {"internalType": "uint256", "name": "bountyAmount", "type": "uint256"}
     ],
     "name": "assignBounty",
     "outputs": [],
@@ -158,33 +216,75 @@ const repoRegistryABI = [
     "type": "function"
   },
   {
-    "inputs": [{"internalType": "uint256", "name": "_issueId", "type": "uint256"}],
-    "name": "getIssueBounty",
-    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [{"internalType": "uint256", "name": "_repoId", "type": "uint256"}],
-    "name": "getRepo",
+    "inputs": [],
+    "name": "bountyEscrow",
     "outputs": [
-      {"internalType": "string", "name": "", "type": "string"},
-      {"internalType": "address", "name": "", "type": "address"},
-      {"internalType": "bool", "name": "", "type": "bool"},
-      {"internalType": "uint256[]", "name": "", "type": "uint256[]"}
+      {"internalType": "contract IBountyEscrow", "name": "", "type": "address"}
     ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
-      {"internalType": "string", "name": "_cid", "type": "string"},
-      {"internalType": "bool", "name": "_isPublic", "type": "bool"},
-      {"internalType": "uint256[]", "name": "_issueIds", "type": "uint256[]"}
+      {"internalType": "uint256", "name": "repoId", "type": "uint256"}
+    ],
+    "name": "getRepo",
+    "outputs": [
+      {"internalType": "string", "name": "cid", "type": "string"},
+      {"internalType": "address", "name": "owner_", "type": "address"},
+      {"internalType": "bool", "name": "isPublic", "type": "bool"},
+      {"internalType": "uint256[]", "name": "issueIds", "type": "uint256[]"}
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "minStake",
+    "outputs": [
+      {"internalType": "uint256", "name": "", "type": "uint256"}
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "address", "name": "", "type": "address"}
+    ],
+    "name": "orgStakes",
+    "outputs": [
+      {"internalType": "uint256", "name": "", "type": "uint256"}
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {"internalType": "address", "name": "", "type": "address"}
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"internalType": "string", "name": "cid", "type": "string"},
+      {"internalType": "bool", "name": "isPublic", "type": "bool"},
+      {"internalType": "uint256[]", "name": "issueIds", "type": "uint256[]"}
     ],
     "name": "registerRepo",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "repoCount",
+    "outputs": [
+      {"internalType": "uint256", "name": "", "type": "uint256"}
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -195,18 +295,8 @@ const repoRegistryABI = [
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "minStake",
-    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "repoCount",
-    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-    "stateMutability": "view",
-    "type": "function"
+    "stateMutability": "payable",
+    "type": "receive"
   }
 ];
 

@@ -204,8 +204,8 @@ export default function LeaderboardPage() {
         return
       }
 
-      // Ensure user is on HelaChain testnet
-      await ensureHelaChainNetwork()
+      // Ensure user is on Lisk Sepolia testnet
+      await ensureLiskNetwork()
 
       // Request account access
       await window.ethereum.request({ method: 'eth_requestAccounts' })
@@ -219,7 +219,7 @@ export default function LeaderboardPage() {
         return
       }
 
-      // Convert donation amount to Wei (HLUSD uses 18 decimals)
+      // Convert donation amount to Wei (ETH uses 18 decimals)
       const web3 = new Web3(window.ethereum)
       const amountInWei = web3.utils.toWei(donationAmount, 'ether')
 
@@ -236,7 +236,7 @@ export default function LeaderboardPage() {
         from: fromAccount,
         value: web3.utils.toHex(amountInWei),
         gas: '0x5208', // 21000 gas limit for simple transfers
-        gasPrice: web3.utils.toHex(gasPrice) // Use legacy gas pricing for HelaChain
+        gasPrice: web3.utils.toHex(gasPrice) // Use legacy gas pricing for Lisk
       }
 
       // Send transaction
@@ -275,17 +275,17 @@ export default function LeaderboardPage() {
     }
   }
 
-  // Ensure user is connected to HelaChain testnet
-  const ensureHelaChainNetwork = async () => {
+  // Ensure user is connected to Lisk Sepolia testnet
+  const ensureLiskNetwork = async () => {
     const chainId = await window.ethereum.request({ method: 'eth_chainId' })
-    const helaChainId = '0xa2d08' // 666888 in hex
+    const liskChainId = '0x106a' // 4202 in hex
     
-    if (chainId !== helaChainId) {
+    if (chainId !== liskChainId) {
       try {
-        // Try to switch to HelaChain testnet
+        // Try to switch to Lisk Sepolia testnet
         await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
-          params: [{ chainId: helaChainId }],
+          params: [{ chainId: liskChainId }],
         })
       } catch (switchError) {
         // If the network doesn't exist, add it
@@ -293,15 +293,15 @@ export default function LeaderboardPage() {
           await window.ethereum.request({
             method: 'wallet_addEthereumChain',
             params: [{
-              chainId: helaChainId,
-              chainName: 'Hela Official Runtime Testnet',
+              chainId: liskChainId,
+              chainName: 'Lisk Sepolia Testnet',
               nativeCurrency: {
-                name: 'HLUSD',
-                symbol: 'HLUSD',
+                name: 'ETH',
+                symbol: 'ETH',
                 decimals: 18
               },
-              rpcUrls: ['https://testnet-rpc.helachain.com'],
-              blockExplorerUrls: ['https://testnet-explorer.helachain.com']
+              rpcUrls: ['https://rpc.sepolia-api.lisk.com'],
+              blockExplorerUrls: ['https://sepolia-blockscout.lisk.com']
             }]
           })
         } else {
@@ -520,7 +520,7 @@ export default function LeaderboardPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Donation Amount (HLUSD)
+                  Donation Amount (ETH)
                 </label>
                 <input
                   type="number"
@@ -532,7 +532,7 @@ export default function LeaderboardPage() {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Minimum: 0.001 HLUSD (~$0.001 USD)
+                  Minimum: 0.001 ETH
                 </p>
               </div>
 
@@ -541,7 +541,7 @@ export default function LeaderboardPage() {
                   <strong>Organization:</strong> {donationModal.organization?.name}<br />
                   <strong>Description:</strong> {donationModal.organization?.description}<br />
                   <strong>Current Pool:</strong> ${formatCurrency(donationModal.organization?.total_pool)}<br />
-                  <strong>Your Donation:</strong> {donationAmount ? `${donationAmount} HLUSD` : '0 HLUSD'}
+                  <strong>Your Donation:</strong> {donationAmount ? `${donationAmount} ETH` : '0 ETH'}
                 </p>
               </div>
 

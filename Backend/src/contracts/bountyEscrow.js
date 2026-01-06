@@ -12,9 +12,9 @@ class BountyEscrowHelper {
   }
 
   /**
-   * Donate MATIC to a project pool
+   * Donate ETH to a project pool
    * @param {number} repoId - Repository ID
-   * @param {string} amount - Amount in MATIC (as string)
+   * @param {string} amount - Amount in ETH (as string)
    * @param {string} donorAddress - Address of the donor (optional, uses default account)
    * @returns {Promise<Object>} Transaction result
    */
@@ -23,7 +23,7 @@ class BountyEscrowHelper {
       const amountWei = this.web3Provider.etherToWei(amount);
       const fromAddress = donorAddress || this.web3Provider.getAccount().address;
 
-      console.log(`💰 Donating ${amount} MATIC to project ${repoId}`);
+      console.log(`💰 Donating ${amount} ETH to project ${repoId}`);
 
       const transaction = {
         to: this.contractAddress,
@@ -58,7 +58,7 @@ class BountyEscrowHelper {
    * Fund a bounty from project pool (owner only)
    * @param {number} repoId - Repository ID
    * @param {number} issueId - Issue ID
-   * @param {string} amount - Amount in MATIC (as string)
+   * @param {string} amount - Amount in ETH (as string)
    * @param {string} orgAddress - Organization address
    * @returns {Promise<Object>} Transaction result
    */
@@ -67,7 +67,7 @@ class BountyEscrowHelper {
       const amountWei = this.web3Provider.etherToWei(amount);
       const fromAddress = this.web3Provider.getAccount().address;
 
-      console.log(`🎯 Funding bounty for issue ${issueId} with ${amount} MATIC`);
+      console.log(`🎯 Funding bounty for issue ${issueId} with ${amount} ETH`);
 
       const transaction = {
         to: this.contractAddress,
@@ -227,7 +227,7 @@ class BountyEscrowHelper {
   /**
    * Check if pool has sufficient funds
    * @param {number} repoId - Repository ID
-   * @param {string} amount - Amount to check in MATIC
+   * @param {string} amount - Amount to check in ETH
    * @returns {Promise<Object>} Sufficiency check result
    */
   async hasSufficientFunds(repoId, amount) {

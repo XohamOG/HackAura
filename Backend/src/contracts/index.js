@@ -11,11 +11,11 @@ const web3Provider = getWeb3Provider();
 
 // Utility functions
 const utils = {
-  // Convert Wei to MATIC
-  weiToMatic: (wei) => web3Provider.weiToEther(wei),
+  // Convert Wei to ETH
+  weiToEth: (wei) => web3Provider.weiToEther(wei),
   
-  // Convert MATIC to Wei
-  maticToWei: (matic) => web3Provider.etherToWei(matic),
+  // Convert ETH to Wei
+  ethToWei: (eth) => web3Provider.etherToWei(eth),
   
   // Validate address
   isValidAddress: (address) => web3Provider.isValidAddress(address),
@@ -38,7 +38,7 @@ const combinedOperations = {
    * @param {boolean} isPublic - Whether repo is public
    * @param {number[]} issueIds - Array of issue IDs
    * @param {number} issueId - Specific issue ID for bounty
-   * @param {string} bountyAmount - Bounty amount in MATIC
+   * @param {string} bountyAmount - Bounty amount in ETH
    * @returns {Promise<Object>} Complete bounty creation result
    */
   async createCompleteBounty(cid, isPublic, issueIds, issueId, bountyAmount) {
